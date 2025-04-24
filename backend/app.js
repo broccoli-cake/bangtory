@@ -1,6 +1,5 @@
 // app.js
 
-
 require('dotenv').config(); // 맨 위에 추가
 const express = require('express');
 const app = express();
