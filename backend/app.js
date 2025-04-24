@@ -1,6 +1,7 @@
 // app.js
 
-require('dotenv').config();
+
+require('dotenv').config(); // 맨 위에 추가
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000; // .env에서 불러옴
