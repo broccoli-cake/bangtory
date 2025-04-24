@@ -1,8 +1,9 @@
 // app.js
 
+require('dotenv').config();
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // .env에서 불러옴
 
 app.get('/', (req, res) => {
   res.send('방토리 서버가 잘 작동 중입니다!');
