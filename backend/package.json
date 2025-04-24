@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "bangtory backend API server",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/broccoli-cake/bangtory.git"
+  },
+  "keywords": [
+    "backend",
+    "api",
+    "bangtory"
+  ],
+  "author": "hyunkyeong_choi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/broccoli-cake/bangtory/issues"
+  },
+  "homepage": "https://github.com/broccoli-cake/bangtory#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
