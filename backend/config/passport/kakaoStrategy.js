@@ -1,3 +1,5 @@
+// backend/config/passport/kakaoStrategy.js
+
 const passport = require('passport');
 const KakaoStrategy = require('passport-kakao').Strategy;
 const { kakaoConfig } = require('../oauthConfig');
@@ -9,6 +11,7 @@ passport.use(new KakaoStrategy(
     clientID: kakaoConfig.clientID,        // 카카오 REST API 키
     clientSecret: kakaoConfig.clientSecret, // 카카오 Client Secret (사용 안 하면 무시 가능)
     callbackURL: kakaoConfig.callbackURL,  // 로그인 성공 후 돌아올 콜백 URL
+    state: true  // state 옵션 추가
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -16,6 +19,7 @@ passport.use(new KakaoStrategy(
       const user = await findOrCreateUserByKakao(profile);
       return done(null, user);  // 인증 완료
     } catch (error) {
+      console.error('Kakao 인증 에러:', error); // 에러 로깅 추가
       return done(error, null); // 에러 발생
     }
   }

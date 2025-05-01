@@ -1,3 +1,5 @@
+// backend/config/oauthConfig.js
+
 // .env 파일에서 환경변수 로드
 require('dotenv').config();
 
