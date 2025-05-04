@@ -1,7 +1,7 @@
 // backend/config/passport/googleStrategy.js
 
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth2').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { googleConfig } = require('../oauthConfig');
 
 // 구글 OAuth 전략 등록

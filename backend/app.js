@@ -16,7 +16,7 @@ app.use((req, res, next) => {
 
 app.set('view engine', 'ejs');
 
-const userRoutes = require('./routes/userRoute');
+const userRoutes = require('./routes/userRoutes');
 
 app.use('/',userRoutes);
 
