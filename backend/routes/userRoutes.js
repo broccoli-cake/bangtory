@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express();
 const passport = require('passport'); 
-//require('../passport');
+require('../config/passport/index'); //수정
 
 router.use(passport.initialize()); 
 router.use(passport.session());

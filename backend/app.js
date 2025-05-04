@@ -14,12 +14,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.set('view engine', 'ejs');
-
-const userRoutes = require('./routes/userRoutes');
-
-app.use('/',userRoutes);
-
 // 미들웨어 순서 중요!
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -36,6 +30,10 @@ app.use(session({
 // Passport 설정
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.set('view engine', 'ejs');
+const userRoutes = require('./routes/userRoutes');
+app.use('/',userRoutes);
 
 // 라우트 설정
 app.get('/test', (req, res) => {
