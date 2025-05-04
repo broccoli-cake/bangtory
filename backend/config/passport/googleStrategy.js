@@ -4,13 +4,6 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
 const { googleConfig } = require('../oauthConfig');
 
-passport.serializeUser((user , done) => { 
-	done(null , user); 
-}) 
-passport.deserializeUser(function(user, done) { 
-	done(null, user); 
-}); 
-
 // 구글 OAuth 전략 등록
 passport.use(new GoogleStrategy(
   {
