@@ -31,6 +31,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// 구글 로그인 뷰
 app.set('view engine', 'ejs');
 const userRoutes = require('./routes/userRoutes');
 app.use('/',userRoutes);
