@@ -14,6 +14,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.set('view engine', 'ejs');
+
+const userRoutes = require('./routes/userRoute');
+
+app.use('/',userRoutes);
+
 // 미들웨어 순서 중요!
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
