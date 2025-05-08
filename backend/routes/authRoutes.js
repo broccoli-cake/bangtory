@@ -5,28 +5,25 @@ const passport = require('passport');
 const router = express.Router();
 
 // 카카오 로그인 시작
-router.get('/kakao', 
-  passport.authenticate('kakao', {
-    session: true,  // 세션 사용
-    failureMessage: true  // 실패 메시지 전달
-  })
+router.get('/kakao', passport.authenticate('kakao'));
+
+// 카카오 로그인 콜백
+router.get('/kakao/callback', 
+  passport.authenticate('kakao', { 
+    failureRedirect: '/',
+    successRedirect: '/'
+  }),
+  (req, res) => {
+    console.log('카카오 로그인 성공:', req.user);
+    res.redirect('/');
+  }
 );
 
-// 카카오 콜백
-router.get('/kakao/callback',
-  passport.authenticate('kakao', {
-    successRedirect: '/',
-    failureRedirect: '/auth/kakao/fail',
-    failureMessage: true
-  })
-);
-
-// 실패 처리 라우트
-router.get('/kakao/fail', (req, res) => {
-  console.error('카카오 로그인 실패:', req.session.messages);  // 실패 메시지 로깅
-  res.status(401).json({
-    error: '카카오 로그인 실패',
-    message: req.session.messages
+// 로그인 상태 확인
+router.get('/status', (req, res) => {
+  res.json({ 
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user 
   });
 });
 
