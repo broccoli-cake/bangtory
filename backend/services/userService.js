@@ -1,15 +1,29 @@
 // services/userService.js
 
+const User = require('../models/User');
+
 async function findOrCreateUserByKakao(profile) {
-  console.log('[userService] 카카오 프로필 받음:', profile);
-  // 임시로 그냥 프로필 그대로 반환
-  return {
-    id: profile.id,
-    username: profile.username || profile.displayName || '카카오유저',
-    provider: 'kakao',
-  };
+  try {
+    // 카카오 ID로 사용자 찾기
+    let user = await User.findOne({ kakaoId: profile.id.toString() });
+    
+    if (!user) {
+      // 사용자가 없으면 새로 생성
+      user = await User.create({
+        kakaoId: profile.id.toString(),
+        username: profile.username || `user_${profile.id}`,
+        displayName: profile.displayName || profile.username || `user_${profile.id}`,
+        provider: 'kakao'
+      });
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('사용자 생성/조회 에러:', error);
+    throw error;
+  }
 }
 
 module.exports = {
-  findOrCreateUserByKakao,
+  findOrCreateUserByKakao
 };
