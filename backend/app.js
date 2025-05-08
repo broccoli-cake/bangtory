@@ -6,6 +6,7 @@ const express = require('express'); // express 모듈 불러오기
 const session = require('express-session'); // 세션 관리용 모듈
 const mongoose = require('mongoose');
 const cors = require('cors'); // CORS 추가
+const path = require('path');
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -31,15 +32,19 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+<<<<<<< HEAD
 // 구글 로그인 뷰
 app.set('view engine', 'ejs');
 const userRoutes = require('./routes/userRoutes');
 app.use('/',userRoutes);
+=======
+// views 디렉토리를 정적 파일로 제공
+app.use('/views', express.static(path.join(__dirname, 'views')));
+>>>>>>> 2ea3b46d45cf514b67e3e7f270c521a50c0cfe5a
 
 // 라우트 설정
 app.get('/test', (req, res) => {
-  console.log('테스트 라우트 요청 받음');
-  res.json({ status: 'ok', message: '테스트 성공' });
+  res.sendFile(path.join(__dirname, 'views', 'test.html'));
 });
 
 // Auth 라우트를 먼저 설정

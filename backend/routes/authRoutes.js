@@ -19,6 +19,17 @@ router.get('/kakao/callback',
   }
 );
 
+// 로그아웃 라우트 추가
+router.get('/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.error('로그아웃 에러:', err);
+      return res.status(500).json({ error: '로그아웃 중 에러가 발생했습니다.' });
+    }
+    res.redirect('/');
+  });
+});
+
 // 로그인 상태 확인
 router.get('/status', (req, res) => {
   res.json({ 

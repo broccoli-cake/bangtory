@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>소셜 로그인 테스트</title>
+    <style>
+      .button {
+        padding: 10px 20px;
+        margin: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .kakao {
+        background-color: #FEE500;
+      }
+      .logout {
+        background-color: #FF0000;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>소셜 로그인 테스트</h1>
+      <div id="auth-container">
+        <!-- 여기에 버튼이 동적으로 들어갑니다 -->
+      </div>
+    </div>
+
+    <script>
+      // 로그인 상태 확인
+      fetch('/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('auth-container');
+          if (data.isAuthenticated) {
+            container.innerHTML = `
+              <p>로그인됨: ${data.user.displayName}</p>
+              <a href="/auth/logout" class="button logout">로그아웃</a>
+            `;
+          } else {
+            container.innerHTML = `
+              <a href="/auth/kakao" class="button kakao">카카오 로그인</a>
+            `;
+          }
+        });
+    </script>
+  </body>
+</html> 
