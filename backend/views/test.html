@@ -9,9 +9,15 @@
         border: none;
         border-radius: 5px;
         cursor: pointer;
+        display: inline-block;
       }
       .kakao {
         background-color: #FEE500;
+        color: #000000;
+      }
+      .google {
+        background-color: #4285F4;
+        color: white;
       }
       .logout {
         background-color: #FF0000;
@@ -41,9 +47,10 @@
           } else {
             container.innerHTML = `
               <a href="/auth/kakao" class="button kakao">카카오 로그인</a>
+              <a href="/auth/google" class="button google">구글 로그인</a>
             `;
           }
         });
     </script>
   </body>
-</html> 
+</html>
