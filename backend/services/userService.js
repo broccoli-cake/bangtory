@@ -37,7 +37,12 @@ async function findOrCreateUserByGoogle(profile) {
   return findOrCreateUser(profile, 'google');
 }
 
+async function findOrCreateUserByNaver(profile) {
+  return findOrCreateUser(profile, 'naver');
+}
+
 module.exports = {
   findOrCreateUserByKakao,
   findOrCreateUserByGoogle,
+  findOrCreateUserByNaver,
 };
