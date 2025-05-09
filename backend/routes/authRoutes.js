@@ -38,6 +38,21 @@ router.get('/google/callback',
   }
 );
 
+// 네이버 로그인 시작
+router.get('/naver', passport.authenticate('naver'));
+
+// 네이버 로그인 콜백
+router.get('/naver/callback',
+  passport.authenticate('naver', {
+    failureRedirect: '/',
+    successRedirect: '/',
+  }),
+  (req, res) => {
+    console.log('네이버 로그인 성공:', req.user);
+    res.redirect('/');
+  }
+);
+
 // 로그아웃
 router.get('/logout', (req, res) => {
   req.logout((err) => {
