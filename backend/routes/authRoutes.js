@@ -8,10 +8,10 @@ const router = express.Router();
 router.get('/kakao', passport.authenticate('kakao'));
 
 // 카카오 로그인 콜백
-router.get('/kakao/callback', 
-  passport.authenticate('kakao', { 
+router.get('/kakao/callback',
+  passport.authenticate('kakao', {
     failureRedirect: '/',
-    successRedirect: '/'
+    successRedirect: '/',
   }),
   (req, res) => {
     console.log('카카오 로그인 성공:', req.user);
@@ -19,7 +19,41 @@ router.get('/kakao/callback',
   }
 );
 
-// 로그아웃 라우트 추가
+// 구글 로그인 시작
+router.get('/google',
+  passport.authenticate('google', {
+    scope: ['profile'] // 이름(프로필)만 가져옴
+  })
+);
+
+// 구글 로그인 콜백
+router.get('/google/callback',
+  passport.authenticate('google', {
+    failureRedirect: '/',
+    successRedirect: '/',
+  }),
+  (req, res) => {
+    console.log('구글 로그인 성공:', req.user);
+    res.redirect('/');
+  }
+);
+
+// 네이버 로그인 시작
+router.get('/naver', passport.authenticate('naver'));
+
+// 네이버 로그인 콜백
+router.get('/naver/callback',
+  passport.authenticate('naver', {
+    failureRedirect: '/',
+    successRedirect: '/',
+  }),
+  (req, res) => {
+    console.log('네이버 로그인 성공:', req.user);
+    res.redirect('/');
+  }
+);
+
+// 로그아웃
 router.get('/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
@@ -32,9 +66,9 @@ router.get('/logout', (req, res) => {
 
 // 로그인 상태 확인
 router.get('/status', (req, res) => {
-  res.json({ 
+  res.json({
     isAuthenticated: req.isAuthenticated(),
-    user: req.user 
+    user: req.user
   });
 });
 

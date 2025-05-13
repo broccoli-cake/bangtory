@@ -5,15 +5,15 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   provider: {
     type: String,
-    enum: ['kakao', 'google'],
+    enum: ['kakao', 'google', 'naver'],
     required: true
   },
   providerId: {
     type: String,
     required: true
   },
-  username: String,
-  displayName: String,
+  username: { type: String, required: true },
+  displayName: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

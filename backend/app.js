@@ -32,15 +32,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-// 구글 로그인 뷰
-app.set('view engine', 'ejs');
-const userRoutes = require('./routes/userRoutes');
-app.use('/',userRoutes);
-
 // views 디렉토리를 정적 파일로 제공
 app.use('/views', express.static(path.join(__dirname, 'views')));
-
 
 // 라우트 설정
 app.get('/test', (req, res) => {
