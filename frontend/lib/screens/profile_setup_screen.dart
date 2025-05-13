@@ -43,7 +43,7 @@ class ProfileSetupScreen extends StatelessWidget {
                     right: 0,
                     child: CircleAvatar(
                       backgroundColor: Colors.grey[400],
-                      child: Icon(Icons.edit, size: 20, color: Colors.white),
+                      child: Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
                     ),
                   ),
                 ],

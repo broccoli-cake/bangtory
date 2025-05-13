@@ -33,7 +33,7 @@ class OnboardingScreen extends StatelessWidget {
             child: Stack(
               alignment: Alignment.topRight,
               children: [
-                // 🍅 연한색 원
+                //  연한색 원
                 Container(
                   width: screenWidth * 0.8,  //크기 0.7->0.8
                   height: screenWidth * 0.8,
@@ -42,7 +42,7 @@ class OnboardingScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
-                // ⭐ 원 안에 별   //가로로 살짝 누르는거 할까 말까? ??
+                //  원 안에 별
                 Positioned(
                   top: screenWidth * 0.06,
                   right: screenWidth * 0.08,
