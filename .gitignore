@@ -59,7 +59,7 @@ frontend/.dart_tool/
 frontend/.packages
 frontend/build/
 frontend/.flutter-plugins
-.idea/
+.idea/workspace.xml
 frontend/.metadata
 frontend/pubspec.lock
 
