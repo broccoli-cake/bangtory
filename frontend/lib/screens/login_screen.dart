@@ -22,7 +22,7 @@ class LoginScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.redAccent,
+                  color: Color(0xFFFA2E55),
                 ),
               ),
               const SizedBox(height: 8),
@@ -30,7 +30,7 @@ class LoginScreen extends StatelessWidget {
                 '룸메이트 필수앱',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.redAccent,
+                  color: Color(0xFFFA2E55),
                 ),
               ),
 
@@ -41,7 +41,7 @@ class LoginScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.redAccent,
+                  color: Color(0xFFFA2E55),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
