@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+#bangtory 프로젝트 재구성 과정중 ignore 필요
+.idea/workspace.xml
