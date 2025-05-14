@@ -1,6 +1,7 @@
 //프로필 이미지 설정(갤러리 이동), 랜덤 닉네임 불러오기 기능 추가 필요!!!
 
 import 'package:flutter/material.dart';
+import 'go_room_screen.dart';
 
 class ProfileSetupScreen extends StatelessWidget {
   const ProfileSetupScreen({super.key});
@@ -74,7 +75,11 @@ class ProfileSetupScreen extends StatelessWidget {
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: 다음 화면으로 이동
+                  // ✅ GoRoomScreen으로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const GoRoomScreen()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
@@ -82,12 +87,13 @@ class ProfileSetupScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   '완료',
                   style: TextStyle(fontSize: 16),
                 ),
               ),
             ),
+
           ],
         ),
       ),
