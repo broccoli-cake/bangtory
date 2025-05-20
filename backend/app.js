@@ -8,7 +8,9 @@ const mongoose = require('mongoose');
 const cors = require('cors'); // CORS 추가
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -36,7 +38,7 @@ app.use(session({
   }
 }));
 
-// Passport 설정
+// Passport 설정 - 세션 설정 후에 초기화
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -48,9 +50,11 @@ app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'test.html'));
 });
 
-// Auth 라우트를 먼저 설정
+// API 라우트 설정
 app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
 app.use('/rooms', roomRoutes);
+app.use('/profiles', profileRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {
@@ -60,8 +64,8 @@ app.get('/', (req, res) => {
       message: '로그인 성공!',
       user: {
         id: req.user._id,
-        username: req.user.username,
-        displayName: req.user.displayName
+        nickname: req.user.nickname,
+        profileImageUrl: req.user.profileImageUrl
       }
     });
   } else {

@@ -4,9 +4,8 @@ const mongoose = require('mongoose');
 
 // 입력값 검증 미들웨어
 const validateRoomInput = [
-  body('roomName').trim().escape().notEmpty(),
-  body('address').optional().trim().escape(),
-  // ... 다른 검증 규칙
+  body('roomName').trim().escape().notEmpty().withMessage('방 이름은 필수입니다.'),
+  body('address').optional().trim().escape()
 ];
 
 // 응답 포맷 생성 함수
@@ -256,4 +255,7 @@ const roomController = {
   }
 };
 
-module.exports = roomController;
+module.exports = {
+  ...roomController,
+  validateRoomInput
+};

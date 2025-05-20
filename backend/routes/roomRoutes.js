@@ -2,21 +2,11 @@ const express = require('express');
 const router = express.Router();
 const roomController = require('../controllers/roomController');
 const isRoomOwner = require('../middlewares/isRoomOwner');
-
-// 로그인된 사용자만 방 생성 가능
-// 미들웨어 예: req.user 확인 (세션 or JWT 기반일 경우 필요)
-const isAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated?.() && req.user) {
-    return next();
-  }
-  return res.status(401).json({
-    resultCode: '401',
-    resultMessage: '로그인이 필요합니다.'
-  });
-};
+const { isAuthenticated } = require('../middlewares/auth');
+const { validateRoomInput } = require('../controllers/roomController');
 
 // [POST] /rooms - 방 생성
-router.post('/', isAuthenticated, roomController.createRoom);
+router.post('/', isAuthenticated, validateRoomInput, roomController.createRoom);
 
 // [POST] /rooms/invite - 방 초대코드 생성
 router.post('/invite', isAuthenticated, roomController.generateInviteCode);

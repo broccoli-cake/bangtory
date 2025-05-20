@@ -1,6 +1,7 @@
 const Room = require('../models/Room');
 const RoomMember = require('../models/RoomMember');
 const mongoose = require('mongoose');
+const { generateRandomNickname, generateUniqueNicknameInRoom } = require('../utils/generateNickname');
 
 // 유틸리티 함수들
 const utils = {
@@ -53,7 +54,7 @@ const roomService = {
       const { roomName, address } = roomData;
 
       console.log('2. Room 생성 시작');
-      // 1. 먼저 Room 생성
+      // Room 생성 (RoomMember는 post save 미들웨어에서 자동 생성)
       const newRoom = new Room({
         roomName,
         address,
@@ -64,32 +65,6 @@ const roomService = {
       
       savedRoom = await newRoom.save();
       console.log('2. Room 생성 완료:', savedRoom._id);
-
-      console.log('3. RoomMember 생성 시작');
-      // 2. RoomMember 생성 전 한번 더 확인
-      const existingRoomMember = await RoomMember.findOne({
-        userId: ownerId,
-        roomId: savedRoom._id
-      });
-
-      if (!existingRoomMember) {
-        const roomMember = new RoomMember({
-          userId: ownerId,
-          roomId: savedRoom._id,
-          isOwner: true
-        });
-
-        await roomMember.save();
-        console.log('3. RoomMember 생성 완료:', roomMember._id);
-        
-        console.log('4. Room members 배열 업데이트 시작');
-        // 3. Room의 members 배열 업데이트
-        savedRoom.members.push(roomMember._id);
-        await savedRoom.save();
-        console.log('4. Room members 배열 업데이트 완료');
-      } else {
-        console.log('3. RoomMember가 이미 존재함:', existingRoomMember._id);
-      }
 
       return savedRoom;
     } catch (error) {
@@ -125,10 +100,14 @@ const roomService = {
         throw new Error('유효하지 않거나 만료된 초대코드입니다.');
       }
 
+      // 방 내에서 중복되지 않는 닉네임 생성
+      const nickname = await generateUniqueNicknameInRoom(room._id);
+
       const roomMember = new RoomMember({
         userId,
         roomId: room._id,
-        isOwner: false
+        isOwner: false,
+        nickname
       });
 
       await roomMember.save();
