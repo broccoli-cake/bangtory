@@ -20,6 +20,9 @@ router.get('/me', isAuthenticated, roomController.getMyRoom);
 // [GET] /rooms/:roomId - 방 상세 정보 조회
 router.get('/:roomId', isAuthenticated, roomController.getRoomDetail);
 
+// [GET] /rooms/:roomId/members - 방 멤버 목록 조회
+router.get('/:roomId/members', isAuthenticated, roomController.getRoomMembers);
+
 // [DELETE] /rooms/:roomId - 방 삭제 (방장만)
 router.delete('/:roomId', isAuthenticated, isRoomOwner, roomController.deleteRoom);
 

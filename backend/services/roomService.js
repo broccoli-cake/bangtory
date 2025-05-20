@@ -2,6 +2,7 @@ const Room = require('../models/Room');
 const RoomMember = require('../models/RoomMember');
 const mongoose = require('mongoose');
 const { generateRandomNickname, generateUniqueNicknameInRoom } = require('../utils/generateNickname');
+const crypto = require('crypto');
 
 // 유틸리티 함수들
 const utils = {
@@ -263,6 +264,22 @@ const roomService = {
     await room.save();
 
     return room;
+  },
+
+  /**
+   * 방 멤버 목록 조회
+   */
+  async getRoomMembers(roomId) {
+    const room = await Room.findById(roomId);
+    if (!room) {
+      throw new Error('방을 찾을 수 없습니다.');
+    }
+
+    const members = await RoomMember.find({ roomId })
+      .select('nickname isOwner joinedAt')
+      .sort({ joinedAt: 1 });
+
+    return members;
   }
 };
 

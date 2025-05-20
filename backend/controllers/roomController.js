@@ -252,6 +252,28 @@ const roomController = {
         createResponse(403, error.message)
       );
     }
+  },
+
+  /**
+   * 방 멤버 목록 조회
+   */
+  async getRoomMembers(req, res) {
+    try {
+      const { roomId } = req.params;
+      const members = await roomService.getRoomMembers(roomId);
+      
+      return res.status(200).json({
+        resultCode: '200',
+        resultMessage: '방 멤버 목록 조회 성공',
+        members
+      });
+    } catch (error) {
+      console.error('방 멤버 목록 조회 중 에러:', error);
+      return res.status(400).json({
+        resultCode: '400',
+        resultMessage: error.message
+      });
+    }
   }
 };
 
