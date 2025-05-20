@@ -7,29 +7,22 @@ const validateCategoryInput = [
   body('name')
     .trim()
     .notEmpty()
-    .withMessage('카테고리 이름은 필수입니다.')
-    .isLength({ min: 1, max: 20 })
-    .withMessage('카테고리 이름은 1~20자 사이여야 합니다.'),
+    .withMessage('카테고리 이름은 비워둘 수 없습니다.')
+    .isLength({ min: 2, max: 20 })
+    .withMessage('카테고리 이름은 2~20자 사이여야 합니다.'),
   body('icon')
+    .trim()
     .notEmpty()
-    .withMessage('아이콘은 필수입니다.'),
-  body('color')
-    .notEmpty()
-    .withMessage('색상은 필수입니다.')
-    .matches(/^#[0-9A-Fa-f]{6}$/)
-    .withMessage('올바른 색상 코드가 아닙니다.')
+    .withMessage('아이콘은 비워둘 수 없습니다.')
 ];
 
-// 응답 포맷 생성 함수
-const createResponse = (status, message, data = null) => {
-  const response = {
-    resultCode: status.toString(),
-    resultMessage: message
+// 응답 생성 함수
+const createResponse = (resultCode, resultMessage, data = null) => {
+  return {
+    resultCode,
+    resultMessage,
+    data
   };
-  if (data) {
-    Object.assign(response, data);
-  }
-  return response;
 };
 
 const choreController = {
@@ -39,16 +32,10 @@ const choreController = {
   async getCategories(req, res) {
     try {
       const categories = await choreService.getCategories();
-      
-      return res.status(200).json(
-        createResponse(200, '카테고리 목록 조회 성공', { categories })
-      );
+      res.json(createResponse('200', '카테고리 목록 조회 성공', categories));
     } catch (error) {
       console.error('카테고리 목록 조회 중 에러:', error);
-      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
-      return res.status(statusCode).json(
-        createResponse(statusCode, error.message)
-      );
+      res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
     }
   },
 
@@ -59,22 +46,14 @@ const choreController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json(
-          createResponse(400, '잘못된 입력입니다.', { errors: errors.array() })
-        );
+        return res.status(400).json(createResponse('400', '잘못된 입력입니다.', errors.array()));
       }
 
       const category = await choreService.createCategory(req.body, req.user._id);
-      
-      return res.status(201).json(
-        createResponse(201, '카테고리 생성 완료', { category })
-      );
+      res.status(201).json(createResponse('201', '카테고리 생성 성공', category));
     } catch (error) {
       console.error('카테고리 생성 중 에러:', error);
-      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
-      return res.status(statusCode).json(
-        createResponse(statusCode, error.message)
-      );
+      res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
     }
   },
 
@@ -84,21 +63,19 @@ const choreController = {
   async deleteCategory(req, res) {
     try {
       await choreService.deleteCategory(req.params.categoryId, req.user._id);
-      
-      return res.status(200).json(
-        createResponse(200, '카테고리 삭제 완료')
-      );
+      res.json(createResponse('200', '카테고리 삭제 성공'));
     } catch (error) {
       console.error('카테고리 삭제 중 에러:', error);
-      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
-      return res.status(statusCode).json(
-        createResponse(statusCode, error.message)
-      );
+      if (error instanceof ChoreError) {
+        res.status(error.statusCode).json(createResponse(error.statusCode.toString(), error.message));
+      } else {
+        res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
+      }
     }
   }
 };
 
 module.exports = {
-  choreController,
+  ...choreController,
   validateCategoryInput
 }; 

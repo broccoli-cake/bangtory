@@ -1,4 +1,4 @@
-const Chore = require('../models/Chore');
+const ChoreCategory = require('../models/ChoreCategory');
 const { ChoreError } = require('../utils/errors');
 
 const choreService = {
@@ -6,16 +6,14 @@ const choreService = {
    * 카테고리 목록 조회
    */
   async getCategories() {
-    const categories = await Chore.find()
-      .sort({ type: 1, createdAt: 1 });
-    return categories;
+    return await ChoreCategory.find().sort({ type: 1, name: 1 });
   },
 
   /**
    * 카테고리 생성
    */
   async createCategory(categoryData, userId) {
-    const category = new Chore({
+    const category = new ChoreCategory({
       ...categoryData,
       createdBy: userId
     });
@@ -26,14 +24,14 @@ const choreService = {
    * 카테고리 삭제
    */
   async deleteCategory(categoryId, userId) {
-    const category = await Chore.findById(categoryId);
+    const category = await ChoreCategory.findById(categoryId);
     
     if (!category) {
       throw new ChoreError('카테고리를 찾을 수 없습니다.', 404);
     }
 
     if (category.type === 'default') {
-      throw new ChoreError('기본 카테고리는 삭제할 수 없습니다.', 403);
+      throw new ChoreError('기본 카테고리는 삭제할 수 없습니다.', 400);
     }
 
     if (category.createdBy.toString() !== userId.toString()) {
@@ -46,8 +44,8 @@ const choreService = {
   /**
    * 기본 카테고리 초기화
    */
-  async initializeDefaultCategories() {
-    await Chore.initializeDefaultCategories();
+  async initializeDefaultCategories(userId) {
+    await ChoreCategory.initializeDefaultCategories(userId);
   }
 };
 
