@@ -7,6 +7,8 @@ const session = require('express-session'); // 세션 관리용 모듈
 const mongoose = require('mongoose');
 const cors = require('cors'); // CORS 추가
 const path = require('path');
+const authRoutes = require('./routes/authRoutes');
+const roomRoutes = require('./routes/roomRoutes');
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -18,14 +20,20 @@ app.use((req, res, next) => {
 // 미들웨어 순서 중요!
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 
 // 세션 설정
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24시간
+  }
 }));
 
 // Passport 설정
@@ -41,8 +49,8 @@ app.get('/test', (req, res) => {
 });
 
 // Auth 라우트를 먼저 설정
-const authRoutes = require('./routes/authRoutes');
 app.use('/auth', authRoutes);
+app.use('/rooms', roomRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {
@@ -68,10 +76,10 @@ app.use((req, res) => {
 
 // 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
-  console.error('에러 발생:', err);
+  console.error(err.stack);
   res.status(500).json({
-    error: err.message || '서버 에러가 발생했습니다.',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    resultCode: '500',
+    resultMessage: '서버 오류가 발생했습니다.'
   });
 });
 
@@ -88,7 +96,11 @@ server.on('error', (error) => {
 });
 
 // MongoDB 연결
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bangtory')
-  .then(() => console.log('MongoDB 연결 성공'))
-  .catch(err => console.error('MongoDB 연결 실패:', err));
+if (process.env.NODE_ENV !== 'test') {
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bangtory')
+    .then(() => console.log('MongoDB 연결 성공'))
+    .catch(err => console.error('MongoDB 연결 실패:', err));
+}
+
+module.exports = app;
 
