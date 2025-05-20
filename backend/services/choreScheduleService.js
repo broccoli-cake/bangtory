@@ -1,5 +1,6 @@
 const ChoreSchedule = require('../models/ChoreSchedule');
 const Room = require('../models/Room');
+const RoomMember = require('../models/RoomMember');
 const { ChoreError } = require('../utils/errors');
 
 const choreScheduleService = {
@@ -25,24 +26,31 @@ const choreScheduleService = {
    * 일정 생성
    */
   async createSchedule(scheduleData, userId) {
+    console.log('일정 생성 요청 데이터:', scheduleData);
+    console.log('사용자 ID:', userId);
+
     // 방 멤버인지 확인
     const room = await Room.findById(scheduleData.room);
     if (!room) {
       throw new ChoreError('방을 찾을 수 없습니다.', 404);
     }
 
-    const isMember = room.members.some(member => 
-      member.user.toString() === userId.toString()
-    );
-    if (!isMember) {
+    const roomMember = await RoomMember.findOne({
+      roomId: room._id,
+      userId: userId
+    });
+
+    if (!roomMember) {
       throw new ChoreError('방 멤버만 일정을 생성할 수 있습니다.', 403);
     }
 
     // 담당자가 방 멤버인지 확인
-    const isAssignedMember = room.members.some(member => 
-      member.user.toString() === scheduleData.assignedTo.toString()
-    );
-    if (!isAssignedMember) {
+    const assignedMember = await RoomMember.findOne({
+      roomId: room._id,
+      userId: scheduleData.assignedTo
+    });
+    
+    if (!assignedMember) {
       throw new ChoreError('담당자는 방 멤버여야 합니다.', 400);
     }
 
@@ -63,9 +71,14 @@ const choreScheduleService = {
       throw new ChoreError('일정을 찾을 수 없습니다.', 404);
     }
 
-    // 담당자만 완료 처리할 수 있음
-    if (schedule.assignedTo.toString() !== userId.toString()) {
-      throw new ChoreError('담당자만 완료 처리할 수 있습니다.', 403);
+    // 방 멤버인지 확인
+    const roomMember = await RoomMember.findOne({
+      roomId: schedule.room,
+      userId: userId
+    });
+
+    if (!roomMember) {
+      throw new ChoreError('방 멤버만 완료 처리할 수 있습니다.', 403);
     }
 
     schedule.isCompleted = true;
@@ -83,9 +96,14 @@ const choreScheduleService = {
       throw new ChoreError('일정을 찾을 수 없습니다.', 404);
     }
 
-    // 생성자만 삭제할 수 있음
-    if (schedule.createdBy.toString() !== userId.toString()) {
-      throw new ChoreError('생성자만 삭제할 수 있습니다.', 403);
+    // 방 멤버인지 확인
+    const roomMember = await RoomMember.findOne({
+      roomId: schedule.room,
+      userId: userId
+    });
+
+    if (!roomMember) {
+      throw new ChoreError('방 멤버만 삭제할 수 있습니다.', 403);
     }
 
     await schedule.deleteOne();
