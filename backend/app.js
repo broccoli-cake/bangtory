@@ -11,6 +11,9 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const choreRoutes = require('./routes/choreRoutes');
+const choreScheduleRoutes = require('./routes/choreScheduleRoutes');
+const choreService = require('./services/choreService');
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -55,6 +58,13 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/profiles', profileRoutes);
+app.use('/chores', choreRoutes);
+app.use('/chores/schedules', choreScheduleRoutes);
+
+// 기본 카테고리 초기화
+choreService.initializeDefaultCategories()
+  .then(() => console.log('기본 카테고리 초기화 완료'))
+  .catch(err => console.error('기본 카테고리 초기화 실패:', err));
 
 // 기본 라우트
 app.get('/', (req, res) => {
