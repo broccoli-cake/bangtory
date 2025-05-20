@@ -1,5 +1,6 @@
 const choreService = require('../services/choreService');
 const { body, validationResult } = require('express-validator');
+const { ChoreError } = require('../utils/errors');
 
 // 입력값 검증 미들웨어
 const validateCategoryInput = [
@@ -7,8 +8,8 @@ const validateCategoryInput = [
     .trim()
     .notEmpty()
     .withMessage('카테고리 이름은 필수입니다.')
-    .isLength({ min: 2, max: 20 })
-    .withMessage('카테고리 이름은 2~20자 사이여야 합니다.'),
+    .isLength({ min: 1, max: 20 })
+    .withMessage('카테고리 이름은 1~20자 사이여야 합니다.'),
   body('icon')
     .notEmpty()
     .withMessage('아이콘은 필수입니다.'),
@@ -44,8 +45,9 @@ const choreController = {
       );
     } catch (error) {
       console.error('카테고리 목록 조회 중 에러:', error);
-      return res.status(400).json(
-        createResponse(400, error.message)
+      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
+      return res.status(statusCode).json(
+        createResponse(statusCode, error.message)
       );
     }
   },
@@ -69,8 +71,9 @@ const choreController = {
       );
     } catch (error) {
       console.error('카테고리 생성 중 에러:', error);
-      return res.status(400).json(
-        createResponse(400, error.message)
+      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
+      return res.status(statusCode).json(
+        createResponse(statusCode, error.message)
       );
     }
   },
@@ -87,8 +90,9 @@ const choreController = {
       );
     } catch (error) {
       console.error('카테고리 삭제 중 에러:', error);
-      return res.status(400).json(
-        createResponse(400, error.message)
+      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
+      return res.status(statusCode).json(
+        createResponse(statusCode, error.message)
       );
     }
   }

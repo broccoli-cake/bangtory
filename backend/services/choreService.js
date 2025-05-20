@@ -1,4 +1,5 @@
 const Chore = require('../models/Chore');
+const { ChoreError } = require('../utils/errors');
 
 const choreService = {
   /**
@@ -28,15 +29,15 @@ const choreService = {
     const category = await Chore.findById(categoryId);
     
     if (!category) {
-      throw new Error('카테고리를 찾을 수 없습니다.');
+      throw new ChoreError('카테고리를 찾을 수 없습니다.', 404);
     }
 
     if (category.type === 'default') {
-      throw new Error('기본 카테고리는 삭제할 수 없습니다.');
+      throw new ChoreError('기본 카테고리는 삭제할 수 없습니다.', 403);
     }
 
     if (category.createdBy.toString() !== userId.toString()) {
-      throw new Error('카테고리 생성자만 삭제할 수 있습니다.');
+      throw new ChoreError('카테고리 생성자만 삭제할 수 있습니다.', 403);
     }
 
     await category.deleteOne();
