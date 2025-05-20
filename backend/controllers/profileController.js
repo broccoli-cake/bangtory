@@ -5,15 +5,24 @@ const { body, validationResult } = require('express-validator');
 const validateProfileInput = [
   body('nickname')
     .optional()
-    .trim()
-    .isLength({ min: 2, max: 20 })
-    .withMessage('닉네임은 2~20자 사이여야 합니다.')
-    .matches(/^[가-힣a-zA-Z0-9]+$/)
-    .withMessage('닉네임은 한글, 영문, 숫자만 사용 가능합니다.'),
+    .custom((value) => {
+      // nickname이 없거나 공백만 있는 경우는 통과
+      if (!value || !value.trim()) {
+        return true;
+      }
+      // nickname이 있는 경우에만 추가 검증
+      if (value.length < 2 || value.length > 20) {
+        throw new Error('닉네임은 2~20자 사이여야 합니다.');
+      }
+      if (!/^[가-힣a-zA-Z0-9]+$/.test(value)) {
+        throw new Error('닉네임은 한글, 영문, 숫자만 사용 가능합니다.');
+      }
+      return true;
+    }),
   body('profileImageUrl')
     .optional()
-    .isURL()
-    .withMessage('올바른 이미지 URL이 아닙니다.')
+    .matches(/^(\/images\/[a-zA-Z0-9-_.]+\.(png|jpg|jpeg|gif))$/)
+    .withMessage('올바른 이미지 경로가 아닙니다.')
 ];
 
 // 응답 포맷 생성 함수

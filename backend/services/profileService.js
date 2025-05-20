@@ -18,8 +18,8 @@ const profileService = {
       throw new Error('이미 프로필이 설정되어 있습니다.');
     }
 
-    // 닉네임 설정
-    if (profileData.nickname) {
+    // 닉네임 설정 (공백만 있는 경우도 랜덤 닉네임 생성)
+    if (profileData.nickname && profileData.nickname.trim()) {
       user.nickname = profileData.nickname;
     } else {
       user.nickname = generateRandomNickname();
