@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'profile_setup_screen.dart'; // 추가: 프로필 설정 화면 import
+import 'package:frontend/services/auth_services.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -100,10 +101,7 @@ class LoginScreen extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
-                    );
+                    AuthService().signInWithGoogle(); // ✅ 그냥 호출만!
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.grey),
@@ -111,6 +109,8 @@ class LoginScreen extends StatelessWidget {
                   child: const Text('구글 로그인'),
                 ),
               ),
+
+
 
               const SizedBox(height: 40),
             ],
