@@ -28,6 +28,26 @@
         background-color: #FF0000;
         color: white;
       }
+      .card {
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        background: #fafafa;
+        text-align: center;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .card:hover {
+        background: #f0f0f0;
+      }
+      .input {
+        width: 200px;
+        padding: 8px;
+        margin: 8px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
     </style>
   </head>
   <body>
@@ -39,16 +59,262 @@
     </div>
 
     <script>
-      // 로그인 상태 확인
+      // 상태별로 화면을 그리는 함수들
+      function renderProfileForm(user) {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <p>로그인됨: ${user.displayName}</p>
+          <a href="/auth/logout" class="button logout">로그아웃</a>
+          <hr>
+          <h2>프로필 설정</h2>
+          <form id="profileForm">
+            <input type="text" id="nickname" placeholder="닉네임" required class="input"><br>
+            <input type="text" id="profileImageUrl" placeholder="프로필 이미지 URL" class="input"><br>
+            <button type="submit" class="button" style="background:#ff5a5f;color:#fff;">저장</button>
+          </form>
+          <div id="profileResult"></div>
+        `;
+        document.getElementById('profileForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const nickname = document.getElementById('nickname').value;
+          const profileImageUrl = document.getElementById('profileImageUrl').value;
+          const body = { nickname };
+          if (profileImageUrl.trim()) body.profileImageUrl = profileImageUrl;
+          const res = await fetch('/profiles/me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const result = await res.json();
+          document.getElementById('profileResult').innerText = JSON.stringify(result, null, 2);
+          if (result.resultCode === '201' || result.resultCode === '200') {
+            setTimeout(() => renderRoomChoice(user), 1000);
+          }
+        };
+      }
+
+      function renderRoomChoice(user) {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <p>안녕하세요, ${user.displayName}님!</p>
+          <a href="/auth/logout" class="button logout">로그아웃</a>
+          <hr>
+          <div class="card" id="createRoomBtn">+ 방 만들기</div>
+          <div class="card" id="joinRoomBtn">방 들어가기</div>
+        `;
+        document.getElementById('createRoomBtn').onclick = () => renderCreateRoomForm(user);
+        document.getElementById('joinRoomBtn').onclick = () => renderJoinRoomForm(user);
+      }
+
+      function renderCreateRoomForm(user) {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <p>방 이름을 정해주세요.</p>
+          <form id="createRoomForm">
+            <input type="text" id="roomName" placeholder="방 이름" required class="input"><br>
+            <input type="text" id="address" placeholder="예: 판교대로 235, 반달 주소, 청년당 6회" class="input"><br>
+            <button type="submit" class="button" style="background:#ff5a5f;color:#fff;">방 만들기</button>
+          </form>
+          <div id="roomResult"></div>
+        `;
+        document.getElementById('createRoomForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const roomName = document.getElementById('roomName').value;
+          const address = document.getElementById('address').value;
+          const res = await fetch('/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomName, address })
+          });
+          const result = await res.json();
+          document.getElementById('roomResult').innerText = JSON.stringify(result, null, 2);
+          if (result.resultCode === '201' && result.room) {
+            setTimeout(() => renderMainRoom(result.room, user), 1000);
+          }
+        };
+      }
+
+      function renderJoinRoomForm(user) {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <p>방 코드(또는 ID)로 방에 입장하세요.</p>
+          <form id="joinRoomForm">
+            <input type="text" id="inviteCode" placeholder="방 코드 또는 ID" required class="input"><br>
+            <button type="submit" class="button" style="background:#ff5a5f;color:#fff;">방 입장하기</button>
+          </form>
+          <div id="joinRoomResult"></div>
+        `;
+        document.getElementById('joinRoomForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const inviteCode = document.getElementById('inviteCode').value;
+          const res = await fetch('/rooms/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inviteCode })
+          });
+          const result = await res.json();
+          document.getElementById('joinRoomResult').innerText = JSON.stringify(result, null, 2);
+          if (result.resultCode === '200' && result.data) {
+            renderMainRoom(result.data, user);
+          }
+        };
+      }
+
+      async function renderMainRoom(roomInfo, user) {
+        const container = document.getElementById('auth-container');
+        // 1. 카테고리 목록 불러오기
+        let categories = [];
+        try {
+          const res = await fetch('/chores');
+          const data = await res.json();
+          categories = Array.isArray(data.data) ? data.data : [];
+        } catch (e) {
+          categories = [];
+        }
+
+        const members = Array.isArray(roomInfo.members) ? roomInfo.members : [];
+        const myChores = Array.isArray(roomInfo.myChores) ? roomInfo.myChores : [];
+        const todaySchedules = Array.isArray(roomInfo.todaySchedules) ? roomInfo.todaySchedules : [];
+
+        container.innerHTML = `
+          <div style="padding:16px;">
+            <h2>${roomInfo.roomName}</h2>
+            <div style="color:#888; font-size:14px;">${roomInfo.address || ''}</div>
+            <div style="margin:16px 0;">
+              <b>멤버:</b>
+              ${members.map(m => `<span style="margin-right:8px;">${m.nickname}${m.isOwner ? '👑' : ''}</span>`).join('')}
+            </div>
+            <hr>
+            <div>
+              <b>집안일 카테고리</b>
+              <div id="category-list" style="margin:8px 0;">
+                ${categories.map(c => `<span id="cat-${c._id}" style="display:inline-block;padding:6px 12px;margin:4px;border-radius:16px;background:#eee;cursor:pointer;">${c.icon} ${c.name}</span>`).join('')}
+                <button id="addCategoryBtn" class="button" style="padding:4px 10px;font-size:14px;">+ 추가</button>
+              </div>
+              <div id="addCategoryForm" style="display:none; margin-top:8px;">
+                <input type="text" id="newCategoryName" placeholder="카테고리 이름" class="input" style="width:120px;">
+                <input type="text" id="newCategoryIcon" placeholder="아이콘(이모지)" class="input" style="width:80px;">
+                <button id="submitCategoryBtn" class="button" style="padding:4px 10px;font-size:14px;">등록</button>
+                <button id="cancelCategoryBtn" class="button" style="padding:4px 10px;font-size:14px;background:#ccc;">취소</button>
+              </div>
+              <div id="categoryResult"></div>
+            </div>
+            <hr>
+            <div>
+              <b>내 할 일</b>
+              <ul>
+                ${myChores.length === 0 ? '<li>할 일이 없습니다.</li>' : myChores.map(chore => `<li>${chore.date} - ${chore.category.icon} ${chore.category.name}</li>`).join('')}
+              </ul>
+            </div>
+            <div>
+              <b>오늘 일정</b>
+              <ul>
+                ${todaySchedules.length === 0 ? '<li>등록된 일정이 없습니다.</li>' : todaySchedules.map(sch => `<li>${sch.category.icon} ${sch.category.name} - ${sch.assignedTo.nickname}</li>`).join('')}
+              </ul>
+            </div>
+            <button class="button logout" onclick="location.reload()">로그아웃/처음으로</button>
+          </div>
+        `;
+
+        // + 추가 버튼 클릭 시 폼 표시
+        document.getElementById('addCategoryBtn').onclick = () => {
+          document.getElementById('addCategoryForm').style.display = 'block';
+        };
+        // 취소 버튼
+        document.getElementById('cancelCategoryBtn').onclick = () => {
+          document.getElementById('addCategoryForm').style.display = 'none';
+        };
+        // 등록 버튼
+        document.getElementById('submitCategoryBtn').onclick = async () => {
+          const name = document.getElementById('newCategoryName').value;
+          const icon = document.getElementById('newCategoryIcon').value;
+          const res = await fetch('/chores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, icon })
+          });
+          const result = await res.json();
+          document.getElementById('categoryResult').innerText = result.resultMessage;
+          if (result.resultCode === '201') {
+            // 등록 성공 시 목록 갱신
+            renderMainRoom(roomInfo, user);
+          }
+        };
+
+        // 카테고리 클릭 이벤트 연결
+        categories.forEach(c => {
+          const el = document.getElementById('cat-' + c._id);
+          if (el) {
+            el.onclick = () => renderChoreScheduleView(roomInfo, user, c);
+          }
+        });
+      }
+
+      async function renderChoreScheduleView(roomInfo, user, category) {
+        const container = document.getElementById('auth-container');
+        // 일정 목록 불러오기
+        let schedules = [];
+        try {
+          const res = await fetch(`/chores/schedules?roomId=${roomInfo.roomId || roomInfo._id}&categoryId=${category._id}`);
+          const data = await res.json();
+          schedules = Array.isArray(data.data) ? data.data : [];
+        } catch (e) {
+          schedules = [];
+        }
+
+        container.innerHTML = `
+          <div style="padding:16px;">
+            <button class="button" onclick="window._renderMainRoom && window._renderMainRoom(window._roomInfo, window._user)">← 뒤로</button>
+            <h2>${category.icon} ${category.name} 일정</h2>
+            <ul>
+              ${schedules.length === 0 ? '<li>등록된 일정이 없습니다.</li>' : schedules.map(s => `<li>${s.date} - 담당: ${s.assignedTo?.nickname || '-'} ${s.isCompleted ? '✅' : ''}</li>`).join('')}
+            </ul>
+            <hr>
+            <h3>새 일정 등록</h3>
+            <form id="addScheduleForm">
+              <input type="date" id="scheduleDate" required class="input">
+              <button type="submit" class="button" style="padding:4px 10px;">등록</button>
+            </form>
+            <div id="scheduleResult"></div>
+          </div>
+        `;
+
+        // 뒤로가기 기능을 위해 전역에 저장
+        window._renderMainRoom = renderMainRoom;
+        window._roomInfo = roomInfo;
+        window._user = user;
+
+        document.getElementById('addScheduleForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const date = document.getElementById('scheduleDate').value;
+          // 담당자는 현재 로그인 유저로 고정(테스트용)
+          const res = await fetch('/chores/schedules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              room: roomInfo.roomId || roomInfo._id,
+              category: category._id,
+              assignedTo: user.id || user._id,
+              date
+            })
+          });
+          const result = await res.json();
+          document.getElementById('scheduleResult').innerText = result.resultMessage;
+          if (result.resultCode === '201') {
+            // 등록 성공 시 다시 일정 목록 갱신
+            renderChoreScheduleView(roomInfo, user, category);
+          }
+        };
+      }
+
+      // 최초 진입 시 로그인 상태 확인
       fetch('/auth/status')
         .then(res => res.json())
         .then(data => {
           const container = document.getElementById('auth-container');
           if (data.isAuthenticated) {
-            container.innerHTML = `
-              <p>로그인됨: ${data.user.displayName}</p>
-              <a href="/auth/logout" class="button logout">로그아웃</a>
-            `;
+            // 프로필 설정부터 시작
+            renderProfileForm(data.user);
           } else {
             container.innerHTML = `
               <a href="/auth/kakao" class="button kakao">카카오 로그인</a>
