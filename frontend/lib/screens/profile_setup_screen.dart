@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'go_room_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -114,6 +117,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
       ),
     );
+  }
+}
+
+Future<void> createRoom(String roomName, String address) async {
+  final prefs = await SharedPreferences.getInstance();
+  final jwt = prefs.getString('jwt') ?? '';
+
+  final response = await http.post(
+    Uri.parse('http://10.0.2.2:3000/rooms'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $jwt',
+    },
+    body: jsonEncode({
+      'roomName': roomName,
+      'address': address,
+    }),
+  );
+
+  if (response.statusCode == 201) {
+    print('방 생성 성공: ${response.body}');
+  } else {
+    print('방 생성 실패: ${response.body}');
   }
 }
 
