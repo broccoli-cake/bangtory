@@ -25,8 +25,11 @@ const profileService = {
       user.nickname = generateRandomNickname();
     }
 
-    if (profileData.profileImageUrl) {
+    // profileImageUrl이 없거나 빈 값이면 기본 이미지 경로로 설정
+    if (profileData.profileImageUrl && profileData.profileImageUrl.trim()) {
       user.profileImageUrl = profileData.profileImageUrl;
+    } else {
+      user.profileImageUrl = '/images/default-profile.png';
     }
 
     user.isProfileSet = true;
