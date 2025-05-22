@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/screens/profile_setup_screen.dart'; // 경로는 프로젝트에 따라 조정
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
@@ -9,7 +12,7 @@ class AuthService {
     scopes: ['email', 'profile'],
   );
 
-  Future<bool> signInWithGoogle() async {
+  Future<void> signInWithGoogle(BuildContext context) async {
     try {
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       final GoogleSignInAuthentication auth = await account!.authentication;
@@ -17,11 +20,11 @@ class AuthService {
       final idToken = auth.idToken;
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/auth/social'), // 👈 실제 백엔드 주소로 변경
+        Uri.parse('http://10.0.2.2:3000/auth/social'), //  필요시 /auth/google/callback 으로 바꾸기?
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'provider': 'google',
-          'accessToken': idToken
+          'id_token': idToken //  백엔드에서 이 이름으로 받을 수 있도록!
         }),
       );
 
@@ -30,11 +33,10 @@ class AuthService {
         final jwt = data['jwt'];
         print("로그인 성공! JWT: $jwt");
 
-        // JWT 저장
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('jwt', jwt);
-
-        return true; // 성공
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
+        );
       } else {
         print("백엔드 로그인 실패: ${response.body}");
         return false;
@@ -78,3 +80,5 @@ class AuthService {
     }
   }
 }
+
+
