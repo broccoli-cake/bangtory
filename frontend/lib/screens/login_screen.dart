@@ -101,7 +101,7 @@ class LoginScreen extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton(
                   onPressed: () {
-                    AuthService().signInWithGoogle(); // ✅ 그냥 호출만!
+                    AuthService().signInWithGoogle(context); // ✅ context 전달!
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.grey),
