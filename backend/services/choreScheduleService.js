@@ -7,17 +7,20 @@ const choreScheduleService = {
   /**
    * 특정 방의 일정 목록 조회
    */
-  async getSchedules(roomId, startDate, endDate) {
-    const schedules = await ChoreSchedule.find({
+  async getSchedules(roomId, endDate, categoryId) {
+    const query = {
       room: roomId,
       date: {
-        $gte: startDate,
         $lte: endDate
       }
-    })
-    .populate('category', 'name icon color')
-    .populate('assignedTo', 'nickname profileImageUrl')
-    .sort({ date: 1 });
+    };
+    if (categoryId) {
+      query.category = categoryId;
+    }
+    const schedules = await ChoreSchedule.find(query)
+      .populate('category', 'name icon color')
+      .populate('assignedTo', 'nickname profileImageUrl')
+      .sort({ date: 1 });
 
     return schedules;
   },
