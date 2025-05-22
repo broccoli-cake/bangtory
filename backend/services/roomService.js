@@ -276,7 +276,7 @@ const roomService = {
     }
 
     const members = await RoomMember.find({ roomId })
-      .select('nickname isOwner joinedAt')
+      .select('userId nickname isOwner joinedAt')
       .sort({ joinedAt: 1 });
 
     return members;
