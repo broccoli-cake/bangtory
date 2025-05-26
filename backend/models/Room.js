@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const RoomMember = require('./RoomMember');
 const { generateUniqueNicknameInRoom } = require('../utils/generateNickname');
+const User = require('./User');
 
 const roomSchema = new mongoose.Schema({
   roomName: { // 방 이름
@@ -44,16 +45,16 @@ roomSchema.pre('save', function(next) {
 // 방 생성 시 자동으로 방장을 RoomMember로 등록
 roomSchema.post('save', async function(doc) {
   try {
-    // 이미 RoomMember가 있는지 확인
     const existingMember = await RoomMember.findOne({
       userId: doc.ownerId,
       roomId: doc._id
     });
 
     if (!existingMember) {
-      // 방 내에서 중복되지 않는 닉네임 생성
-      const nickname = await generateUniqueNicknameInRoom(doc._id);
-      
+      // User 닉네임 가져오기
+      const user = await User.findById(doc.ownerId);
+      const nickname = user.nickname; // User 닉네임 사용
+
       // RoomMember 생성
       const roomMember = await RoomMember.create({
         userId: doc.ownerId,
@@ -62,7 +63,6 @@ roomSchema.post('save', async function(doc) {
         nickname
       });
 
-      // Room의 members 배열에 추가
       doc.members.push(roomMember._id);
       await doc.save();
     }

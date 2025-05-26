@@ -154,8 +154,8 @@
           });
           const result = await res.json();
           document.getElementById('joinRoomResult').innerText = JSON.stringify(result, null, 2);
-          if (result.resultCode === '200' && result.data) {
-            renderMainRoom(result.data, user);
+          if (result.resultCode === '200' && result.room) {
+            renderMainRoom(result.room, user);
           }
         };
       }
@@ -180,10 +180,18 @@
           <div style="padding:16px;">
             <h2>${roomInfo.roomName}</h2>
             <div style="color:#888; font-size:14px;">${roomInfo.address || ''}</div>
-            <div style="margin:16px 0;">
-              <b>멤버:</b>
-              ${members.map(m => `<span style="margin-right:8px;">${m.nickname}${m.isOwner ? '👑' : ''}</span>`).join('')}
+            <div style="margin:16px 0; display:flex; align-items:center;">
+              <b style="margin-right:8px;">멤버:</b>
+              <span id="member-list" style="display:flex; align-items:center;">
+                ${members.map(m => `
+                  <span style="margin-right:12px; font-size:15px;">
+                    ${m.nickname}${m.isOwner ? '👑' : ''}
+                  </span>
+                `).join('')}
+                <button id="showInviteCodeBtn" class="button" style="padding:4px 10px; font-size:16px; margin-left:8px;">+</button>
+              </span>
             </div>
+            <div id="inviteCodeBox" style="margin-top:8px;"></div>
             <hr>
             <div>
               <b>집안일 카테고리</b>
@@ -213,6 +221,7 @@
               </ul>
             </div>
             <button class="button logout" onclick="location.reload()">로그아웃/처음으로</button>
+            <button id="goSettingsBtn" class="button" style="float:right;">⚙️ 설정</button>
           </div>
         `;
 
@@ -248,18 +257,57 @@
             el.onclick = () => renderChoreScheduleView(roomInfo, user, c);
           }
         });
+
+        setTimeout(() => {
+          const btn = document.getElementById('showInviteCodeBtn');
+          if (btn) {
+            btn.onclick = async () => {
+              // 초대코드 API 호출
+              const res = await fetch('/rooms/invite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: roomInfo.roomId || roomInfo._id })
+              });
+              const result = await res.json();
+              if (result.inviteCode) {
+                document.getElementById('inviteCodeBox').innerHTML = `
+                  <div style="margin-top:8px; font-size:16px;">
+                    <b>초대코드:</b> <span style="font-size:20px; color:#FA2E55;">${result.inviteCode}</span>
+                    <span style="font-size:12px; color:#888;">(3분 내 사용)</span>
+                  </div>
+                `;
+              } else {
+                document.getElementById('inviteCodeBox').innerText = result.resultMessage || '초대코드 생성 실패';
+              }
+            };
+          }
+        }, 100);
+
+        document.getElementById('goSettingsBtn').onclick = () => renderSettings();
       }
 
       async function renderChoreScheduleView(roomInfo, user, category) {
         const container = document.getElementById('auth-container');
         // 일정 목록 불러오기
+        const today = new Date();
+        const endDate = today.toISOString().slice(0, 10); // 오늘 날짜(YYYY-MM-DD)
         let schedules = [];
         try {
-          const res = await fetch(`/chores/schedules?roomId=${roomInfo.roomId || roomInfo._id}&categoryId=${category._id}`);
+          const res = await fetch(`/chores/schedules?roomId=${roomInfo.roomId || roomInfo._id}&endDate=${endDate}&categoryId=${category._id}`);
           const data = await res.json();
-          schedules = Array.isArray(data.data) ? data.data : [];
+          schedules = Array.isArray(data.schedules) ? data.schedules : [];
         } catch (e) {
           schedules = [];
+        }
+
+        // **방 멤버 목록 불러오기**
+        let members = [];
+        try {
+          const res = await fetch(`/rooms/${roomInfo.roomId || roomInfo._id}/members`);
+          const data = await res.json();
+          members = Array.isArray(data.members) ? data.members : [];
+        } catch (e) {
+          members = [];
         }
 
         container.innerHTML = `
@@ -267,12 +315,23 @@
             <button class="button" onclick="window._renderMainRoom && window._renderMainRoom(window._roomInfo, window._user)">← 뒤로</button>
             <h2>${category.icon} ${category.name} 일정</h2>
             <ul>
-              ${schedules.length === 0 ? '<li>등록된 일정이 없습니다.</li>' : schedules.map(s => `<li>${s.date} - 담당: ${s.assignedTo?.nickname || '-'} ${s.isCompleted ? '✅' : ''}</li>`).join('')}
+              ${schedules.length === 0
+                ? '<li>등록된 일정이 없습니다.</li>'
+                : schedules.map(s => `
+                    <li style="cursor:pointer;" onclick="toggleScheduleCheck('${s._id}')">
+                      ${s.date} - ${s.assignedTo?.nickname || '-'}
+                      ${s.isCompleted ? '✅' : ''}
+                    </li>
+                  `).join('')}
             </ul>
             <hr>
             <h3>새 일정 등록</h3>
             <form id="addScheduleForm">
               <input type="date" id="scheduleDate" required class="input">
+              <select id="assignedMember" required class="input" style="margin-left:8px;">
+                <option value="">담당자 선택</option>
+                ${members.map(m => `<option value="${m.userId}">${m.nickname}${m.isOwner ? '👑' : ''}</option>`).join('')}
+              </select>
               <button type="submit" class="button" style="padding:4px 10px;">등록</button>
             </form>
             <div id="scheduleResult"></div>
@@ -287,14 +346,18 @@
         document.getElementById('addScheduleForm').onsubmit = async function(e) {
           e.preventDefault();
           const date = document.getElementById('scheduleDate').value;
-          // 담당자는 현재 로그인 유저로 고정(테스트용)
+          const assignedTo = document.getElementById('assignedMember').value;
+          if (!assignedTo) {
+            document.getElementById('scheduleResult').innerText = '담당자를 선택하세요!';
+            return;
+          }
           const res = await fetch('/chores/schedules', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               room: roomInfo.roomId || roomInfo._id,
               category: category._id,
-              assignedTo: user.id || user._id,
+              assignedTo,
               date
             })
           });
@@ -307,13 +370,182 @@
         };
       }
 
+      function renderSettings() {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <div style="padding:24px;">
+            <button class="button" onclick="window._renderMainRoom && window._renderMainRoom(window._roomInfo, window._user)">← 뒤로</button>
+            <h2 style="margin-bottom:24px;">설정</h2>
+            <div class="card" style="margin-bottom:12px; cursor:pointer;" onclick="renderProfileManage()">
+              프로필 관리
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span>푸시 알림</span>
+              <input type="checkbox" id="pushToggle" checked style="width:24px;height:24px;">
+            </div>
+            <div class="card" style="margin-bottom:12px; cursor:pointer;" onclick="renderRoomManage()">
+              방 관리
+            </div>
+            <div class="card" style="margin-bottom:12px; cursor:pointer;">
+              공지사항
+            </div>
+            <button class="button logout" style="margin-top:24px;" onclick="location.reload()">로그아웃</button>
+          </div>
+        `;
+      }
+
+      function renderProfileManage() {
+        const container = document.getElementById('auth-container');
+        // user 객체를 받아오거나, 전역에서 사용
+        const nickname = window._user?.nickname || '닉네임 없음';
+
+        container.innerHTML = `
+          <div style="padding:24px;">
+            <button class="button" onclick="renderSettings()">← 뒤로</button>
+            <h2 style="margin-bottom:24px;">프로필 관리</h2>
+            <div style="text-align:center;">
+              <div style="width:100px;height:100px;border-radius:50%;background:#eee;margin:0 auto 16px;position:relative;">
+                <span style="position:absolute;bottom:0;right:0;background:#fa2e55;color:#fff;border-radius:50%;padding:6px;cursor:pointer;">📷</span>
+              </div>
+              <input id="nicknameInput" type="text" value="${nickname}" style="width:80%;padding:8px;border-radius:8px;border:1px solid #ccc;margin-bottom:16px;text-align:center;">
+              <button id="profileEditBtn" class="button" style="width:80%;background:#fa2e55;color:#fff;">수정</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:32px;">
+              <button class="button" style="background:#eee;color:#fa2e55;" onclick="leaveRoom()">방 나가기</button>
+              <button class="button" style="background:#eee;color:#fa2e55;" onclick="withdraw()">탈퇴하기</button>
+            </div>
+            <div id="profileResult"></div>
+          </div>
+        `;
+
+        document.getElementById('profileEditBtn').onclick = async () => {
+          const nickname = document.getElementById('nicknameInput').value;
+          const res = await fetch('/profiles/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nickname })
+          });
+          const result = await res.json();
+          document.getElementById('profileResult').innerText = result.resultMessage;
+          // 닉네임 변경 후 전역 user 객체도 갱신
+          if (result.resultCode === '200' || result.resultCode === '201') {
+            window._user.nickname = nickname;
+          }
+        };
+      }
+
+      function renderRoomManage() {
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <div style="padding:24px;">
+            <button class="button" onclick="renderSettings()">← 뒤로</button>
+            <h2 style="margin-bottom:24px;">방 관리</h2>
+            <div>
+              <div style="margin-bottom:12px;">
+                <b>방 이름</b>
+                <input id="roomNameInput" type="text" value="${window._roomInfo.roomName}" style="width:80%;padding:8px;border-radius:8px;border:1px solid #ccc;">
+              </div>
+              <div style="margin-bottom:12px;">
+                <b>현재 주소</b>
+                <input id="roomAddressInput" type="text" value="${window._roomInfo.address || ''}" style="width:80%;padding:8px;border-radius:8px;border:1px solid #ccc;">
+              </div>
+              <button id="roomEditBtn" class="button" style="background:#fa2e55;color:#fff;">수정</button>
+              <div class="card" style="margin-bottom:12px; cursor:pointer;" onclick="renderMemberManage()">멤버 관리</div>
+              <div class="card" style="margin-bottom:12px; cursor:pointer;" onclick="showInviteCode()">멤버 초대</div>
+              <div class="card" style="margin-bottom:12px; cursor:pointer;" onclick="deleteRoom()">방 삭제</div>
+            </div>
+            <div id="roomResult"></div>
+            <div id="inviteCodeBox"></div>
+          </div>
+        `;
+
+        // "수정" 버튼 클릭 시 API 호출
+        document.getElementById('roomEditBtn').onclick = async () => {
+          const roomName = document.getElementById('roomNameInput').value;
+          const address = document.getElementById('roomAddressInput').value;
+          const res = await fetch(`/rooms/${window._roomInfo.roomId || window._roomInfo._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomName, address })
+          });
+          const result = await res.json();
+          document.getElementById('roomResult').innerText = result.resultMessage;
+        };
+      }
+
+      async function renderMemberManage() {
+        const res = await fetch(`/rooms/${window._roomInfo.roomId || window._roomInfo._id}/members`);
+        const data = await res.json();
+        const members = data.members || [];
+        const container = document.getElementById('auth-container');
+        container.innerHTML = `
+          <div style="padding:24px;">
+            <button class="button" onclick="renderRoomManage()">← 뒤로</button>
+            <h2 style="margin-bottom:24px;">멤버 관리</h2>
+            <ul id="member-list-ul">
+              ${members.map(m => `
+                <li>
+                  ${m.nickname}${m.isOwner ? ' 👑' : ''}
+                  <button 
+                    ${m.isOwner ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}
+                    onclick="kickMember('${m.userId}')"
+                  >내보내기</button>
+                </li>
+              `).join('')}
+            </ul>
+            <div id="kickResult"></div>
+          </div>
+        `;
+      }
+
+      // 내보내기 함수 추가
+      async function kickMember(userId) {
+        if (!window._roomInfo) return;
+        const roomId = window._roomInfo.roomId || window._roomInfo._id;
+        if (!confirm('정말 이 멤버를 내보내시겠습니까?')) return;
+        const res = await fetch(`/rooms/${roomId}/members/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+        document.getElementById('kickResult').innerText = result.resultMessage;
+        if (result.resultCode === '200') {
+          // 성공 시 목록 갱신
+          renderMemberManage();
+        }
+      }
+
+      async function showInviteCode() {
+        const res = await fetch('/rooms/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: window._roomInfo.roomId || window._roomInfo._id })
+        });
+        const result = await res.json();
+        document.getElementById('inviteCodeBox').innerHTML = `
+          <div style="margin-top:8px; font-size:16px;">
+            <b>초대코드:</b> <span style="font-size:20px; color:#FA2E55;">${result.inviteCode}</span>
+            <span style="font-size:12px; color:#888;">(3시간 내 사용)</span>
+          </div>
+        `;
+      }
+
+      async function deleteRoom() {
+        if (!confirm('정말 방을 삭제하시겠습니까?')) return;
+        await fetch(`/rooms/${window._roomInfo.roomId || window._roomInfo._id}`, {
+          method: 'DELETE'
+        });
+        alert('방이 삭제되었습니다.');
+        location.reload();
+      }
+
       // 최초 진입 시 로그인 상태 확인
       fetch('/auth/status')
         .then(res => res.json())
         .then(data => {
           const container = document.getElementById('auth-container');
           if (data.isAuthenticated) {
-            // 프로필 설정부터 시작
+            window._user = data.user;
             renderProfileForm(data.user);
           } else {
             container.innerHTML = `

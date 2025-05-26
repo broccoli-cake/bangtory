@@ -7,10 +7,10 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// 카카오 로그인 시작
+// [GET] /auth/kakao - 카카오 로그인 시작
 router.get('/kakao', passport.authenticate('kakao'));
 
-// 카카오 로그인 콜백
+// [GET] /auth/kakao/callback - 카카오 로그인 콜백
 router.get('/kakao/callback',
   passport.authenticate('kakao', {
     failureRedirect: '/',
@@ -22,14 +22,14 @@ router.get('/kakao/callback',
   }
 );
 
-// 구글 로그인 시작
+// [GET] /auth/google - 구글 로그인 시작
 router.get('/google',
   passport.authenticate('google', {
     scope: ['profile'] // 이름(프로필)만 가져옴
   })
 );
 
-// 구글 로그인 콜백
+// [GET] /auth/google/callback - 구글 로그인 콜백
 router.get('/google/callback',
   passport.authenticate('google', {
     failureRedirect: '/',
@@ -41,10 +41,10 @@ router.get('/google/callback',
   }
 );
 
-// 네이버 로그인 시작
+// [GET] /auth/naver - 네이버 로그인 시작 
 router.get('/naver', passport.authenticate('naver'));
 
-// 네이버 로그인 콜백
+// [GET] /auth/naver/callback - 네이버 로그인 콜백
 router.get('/naver/callback',
   passport.authenticate('naver', {
     failureRedirect: '/',
@@ -56,7 +56,7 @@ router.get('/naver/callback',
   }
 );
 
-// 로그아웃
+// [GET] /auth/logout - 로그아웃
 router.get('/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
@@ -67,7 +67,7 @@ router.get('/logout', (req, res) => {
   });
 });
 
-// 로그인 상태 확인
+// [GET] /auth/status - 로그인 상태 확인
 router.get('/status', (req, res) => {
   res.json({
     isAuthenticated: req.isAuthenticated(),
@@ -75,13 +75,13 @@ router.get('/status', (req, res) => {
   });
 });
 
-// 소셜 통합 로그인 (Flutter 등 모바일용)
-router.post('/social', async (req, res) => {
+// [POST] /auth/social - 소셜 통합 로그인 (Flutter 등 모바일용)
+router.post('/social', async (req, res) => { 
   const { provider, accessToken } = req.body;
   let userInfo = null;
 
   try {
-    if (provider === 'kakao') {
+    if (provider === 'kakao') {  
       const kakaoRes = await axios.get('https://kapi.kakao.com/v2/user/me', {
         headers: { Authorization: `Bearer ${accessToken}` }
       });

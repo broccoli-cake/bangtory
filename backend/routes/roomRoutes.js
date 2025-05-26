@@ -32,4 +32,7 @@ router.delete('/me', isAuthenticated, roomController.leaveRoom);
 // [PATCH] /rooms/:roomId - 방 정보 수정 (방장만)
 router.patch('/:roomId', isAuthenticated, isRoomOwner, roomController.updateRoom);
 
+// [DELETE] /rooms/:roomId/members/:userId - 방 멤버 내보내기 (방장만)
+router.delete('/:roomId/members/:userId', isAuthenticated, isRoomOwner, roomController.kickMember);
+
 module.exports = router;

@@ -38,18 +38,18 @@ const choreScheduleController = {
    */
   async getSchedules(req, res) {
     try {
-      const { roomId, startDate, endDate } = req.query;
+      const { roomId, endDate, categoryId } = req.query;
       
-      if (!roomId || !startDate || !endDate) {
+      if (!roomId || !endDate) {
         return res.status(400).json(
-          createResponse(400, '방 ID, 시작일, 종료일은 필수입니다.')
+          createResponse(400, '방 ID, 종료일은 필수입니다.')
         );
       }
 
       const schedules = await choreScheduleService.getSchedules(
         roomId,
-        new Date(startDate),
-        new Date(endDate)
+        new Date(endDate),
+        categoryId
       );
       
       return res.status(200).json(

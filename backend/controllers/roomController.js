@@ -274,6 +274,29 @@ const roomController = {
         resultMessage: error.message
       });
     }
+  },
+
+  /**
+   * 방 멤버 내보내기(추방)
+   * @route DELETE /rooms/:roomId/members/:userId
+   * @description 방장이 특정 멤버를 방에서 내보냅니다.
+   */
+  async kickMember(req, res) {
+    try {
+      const { roomId, userId } = req.params;
+      await roomService.kickMember(roomId, userId, req.user._id);
+
+      return res.status(200).json({
+        resultCode: '200',
+        resultMessage: '멤버 내보내기 완료'
+      });
+    } catch (error) {
+      console.error('멤버 내보내기 중 에러:', error);
+      return res.status(400).json({
+        resultCode: '400',
+        resultMessage: error.message
+      });
+    }
   }
 };
 
