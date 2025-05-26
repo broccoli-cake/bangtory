@@ -482,16 +482,37 @@
           <div style="padding:24px;">
             <button class="button" onclick="renderRoomManage()">← 뒤로</button>
             <h2 style="margin-bottom:24px;">멤버 관리</h2>
-            <ul>
+            <ul id="member-list-ul">
               ${members.map(m => `
                 <li>
                   ${m.nickname}${m.isOwner ? ' 👑' : ''}
-                  <button onclick="kickMember('${m.userId}')">내보내기</button>
+                  <button 
+                    ${m.isOwner ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}
+                    onclick="kickMember('${m.userId}')"
+                  >내보내기</button>
                 </li>
               `).join('')}
             </ul>
+            <div id="kickResult"></div>
           </div>
         `;
+      }
+
+      // 내보내기 함수 추가
+      async function kickMember(userId) {
+        if (!window._roomInfo) return;
+        const roomId = window._roomInfo.roomId || window._roomInfo._id;
+        if (!confirm('정말 이 멤버를 내보내시겠습니까?')) return;
+        const res = await fetch(`/rooms/${roomId}/members/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+        document.getElementById('kickResult').innerText = result.resultMessage;
+        if (result.resultCode === '200') {
+          // 성공 시 목록 갱신
+          renderMemberManage();
+        }
       }
 
       async function showInviteCode() {
