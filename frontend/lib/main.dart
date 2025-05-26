@@ -5,7 +5,7 @@ import 'screens/onboarding_screen.dart'; //온보딩화면만 보임
 //import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() {
-  KakaoSdk.init(nativeAppKey: '895568f04a81d7ea98d525d6eb33f170');
+  //KakaoSdk.init(nativeAppKey: '895568f04a81d7ea98d525d6eb33f170');
   runApp(const MyApp());
 }
 

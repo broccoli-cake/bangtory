@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // 타이머에 필요
-import 'login_screen.dart'; // 로그인 화면 import
+// import 'login_screen.dart'; // 로그인 화면 import (임시 비활성화)
+import 'profile_setup_screen.dart'; // 테스트용으로 대체 이동 화면
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,11 +14,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    // 3초 뒤 로그인 화면으로 이동
+    // 6초 뒤 다음 화면으로 이동
     Timer(const Duration(seconds: 6), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        // MaterialPageRoute(builder: (context) => const LoginScreen()), // 기존 로그인 화면
+        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()), // 임시로 프로필 설정 화면으로 이동
       );
     });
   }
@@ -115,3 +117,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
+
