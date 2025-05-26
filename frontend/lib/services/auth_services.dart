@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -5,7 +6,7 @@ import 'package:frontend/screens/profile_setup_screen.dart'; // 경로는 프로
 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';  //이게 에러..?
 
 class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -81,4 +82,4 @@ class AuthService {
   }
 }
 
-
+*/
