@@ -280,6 +280,24 @@ const roomService = {
       .sort({ joinedAt: 1 });
 
     return members;
+  },
+
+  async kickMember(roomId, userId, ownerId) {
+    // 1. 방장 본인은 내보낼 수 없음
+    const room = await Room.findById(roomId);
+    if (!room) throw new Error('방이 존재하지 않습니다.');
+    if (String(room.ownerId) !== String(ownerId)) throw new Error('방장만 멤버를 내보낼 수 있습니다.');
+    if (String(ownerId) === String(userId)) throw new Error('방장은 자신을 내보낼 수 없습니다.');
+
+    // 2. 해당 멤버가 방에 속해있는지 확인
+    const member = await RoomMember.findOne({ roomId, userId });
+    if (!member) throw new Error('해당 멤버가 방에 없습니다.');
+
+    // 3. RoomMember 삭제
+    await RoomMember.deleteOne({ roomId, userId });
+
+    // 4. Room의 members 배열에서도 제거
+    await Room.findByIdAndUpdate(roomId, { $pull: { members: member._id } });
   }
 };
 
