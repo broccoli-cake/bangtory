@@ -1,3 +1,5 @@
+// backend/utils/errors.js
+
 class ChoreError extends Error {
   constructor(message, statusCode = 400) {
     super(message);
@@ -9,3 +11,16 @@ class ChoreError extends Error {
 module.exports = {
   ChoreError
 }; 
+
+
+class ReservationError extends Error {
+  constructor(message, statusCode = 500) {
+    super(message);
+    this.name = 'ReservationError';
+    this.statusCode = statusCode;
+  }
+}
+
+module.exports = {
+  ReservationError
+};
