@@ -1,4 +1,4 @@
-// backend/jobs/reservationScheduler.js
+// backend/schedulers/reservationScheduler.js
 const cron = require('node-cron');
 const reservationScheduleService = require('../services/reservationScheduleService');
 
