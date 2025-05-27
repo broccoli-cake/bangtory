@@ -1,6 +1,7 @@
-// app.js
+// backend/app.js
 
 require('dotenv').config();
+require('./schedulers/reservationScheduler'); // 스케줄러 초기화
 const passport = require('./config/passport'); // OAuth 전략 등록된 파일 불러오기
 const express = require('express'); // express 모듈 불러오기
 const session = require('express-session'); // 세션 관리용 모듈
@@ -14,6 +15,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const choreRoutes = require('./routes/choreRoutes');
 const choreScheduleRoutes = require('./routes/choreScheduleRoutes');
 const choreService = require('./services/choreService');
+const reservationRoutes = require('./routes/reservation'); // 예약 라우트 추가
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -60,6 +62,7 @@ app.use('/rooms', roomRoutes);
 app.use('/profiles', profileRoutes);
 app.use('/chores', choreRoutes);
 app.use('/chores/schedules', choreScheduleRoutes);
+app.use('/reservations', reservationRoutes); // 예약 라우트 추가
 
 // 기본 카테고리 초기화
 choreService.initializeDefaultCategories()
@@ -91,6 +94,22 @@ app.use((req, res) => {
 // 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
   console.error(err.stack);
+
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+      details: error.details
+    });
+  }
+  
+  if (error.name === 'ReservationError') {
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message
+    });
+  }
+
   res.status(500).json({
     resultCode: '500',
     resultMessage: '서버 오류가 발생했습니다.'
