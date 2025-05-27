@@ -1,226 +1,137 @@
 // backend/controllers/reservationScheduleController.js
 const reservationScheduleService = require('../services/reservationScheduleService');
-const { validationResult, body } = require('express-validator');
-
-// 예약 입력 검증 미들웨어
-const validateScheduleInput = [
-  body('room')
-    .notEmpty()
-    .withMessage('방 ID는 필수입니다.')
-    .isMongoId()
-    .withMessage('올바른 방 ID가 아닙니다.'),
-  body('category')
-    .notEmpty()
-    .withMessage('카테고리 ID는 필수입니다.')
-    .isMongoId()
-    .withMessage('올바른 카테고리 ID가 아닙니다.'),
-  body('dayOfWeek')
-    .notEmpty()
-    .withMessage('요일은 필수입니다.')
-    .isInt({ min: 0, max: 6 })
-    .withMessage('요일은 0-6 사이의 숫자여야 합니다.'),
-  body('startHour')
-    .notEmpty()
-    .withMessage('시작 시간은 필수입니다.')
-    .isInt({ min: 0, max: 23 })
-    .withMessage('시작 시간은 0-23 사이의 숫자여야 합니다.'),
-  body('endHour')
-    .notEmpty()
-    .withMessage('종료 시간은 필수입니다.')
-    .isInt({ min: 1, max: 24 })
-    .withMessage('종료 시간은 1-24 사이의 숫자여야 합니다.')
-];
+const { successResponse } = require('../utils/responses');
 
 const reservationScheduleController = {
   /**
-   * 현재 주 예약 일정 조회 (승인된 예약만)
+   * 주간 예약 일정 조회
    */
-  async getCurrentWeekSchedules(req, res) {
+  async getWeeklySchedules(req, res, next) {
     try {
-      const { roomId, categoryId } = req.query;
-
-      if (!roomId) {
-        return res.status(400).json({
-          resultCode: '400',
-          resultMessage: '방 ID는 필수입니다.'
-        });
-      }
-
-      const schedules = await reservationScheduleService.getCurrentWeekSchedules(
-        roomId,
+      const { roomId } = req.params;
+      const { weekStartDate, categoryId } = req.query;
+      
+      const schedules = await reservationScheduleService.getWeeklySchedules(
+        roomId, 
+        weekStartDate, 
         categoryId
       );
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '현재 주 예약 일정 조회 성공',
-        data: schedules
-      });
+      
+      res.json(successResponse(schedules, '주간 예약 일정을 조회했습니다.'));
     } catch (error) {
-      console.error('현재 주 예약 일정 조회 에러:', error);
-      res.status(500).json({
-        resultCode: '500',
-        resultMessage: '서버 에러가 발생했습니다.',
-        error: error.message
-      });
+      next(error);
     }
   },
 
   /**
-   * 특정 주 예약 일정 조회 (승인된 예약만)
+   * 현재 주 예약 일정 조회
    */
-  async getWeeklySchedules(req, res) {
+  async getCurrentWeekSchedules(req, res, next) {
     try {
-      const { roomId, weekStartDate, categoryId } = req.query;
-
-      if (!roomId || !weekStartDate) {
-        return res.status(400).json({
-          resultCode: '400',
-          resultMessage: '방 ID와 주 시작 날짜는 필수입니다.'
-        });
-      }
-
-      const schedules = await reservationScheduleService.getWeeklySchedules(
-        roomId,
-        weekStartDate,
+      const { roomId } = req.params;
+      const { categoryId } = req.query;
+      
+      const schedules = await reservationScheduleService.getCurrentWeekSchedules(
+        roomId, 
         categoryId
       );
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '주간 예약 일정 조회 성공',
-        data: schedules
-      });
+      
+      res.json(successResponse(schedules, '현재 주 예약 일정을 조회했습니다.'));
     } catch (error) {
-      console.error('주간 예약 일정 조회 에러:', error);
-      res.status(500).json({
-        resultCode: '500',
-        resultMessage: '서버 에러가 발생했습니다.',
-        error: error.message
-      });
+      next(error);
+    }
+  },
+
+  /**
+   * 방문객 예약 조회
+   */
+  async getVisitorReservations(req, res, next) {
+    try {
+      const { roomId } = req.params;
+      const { startDate, endDate } = req.query;
+      
+      const reservations = await reservationScheduleService.getVisitorReservations(
+        roomId, 
+        startDate, 
+        endDate
+      );
+      
+      res.json(successResponse(reservations, '방문객 예약을 조회했습니다.'));
+    } catch (error) {
+      next(error);
     }
   },
 
   /**
    * 승인 대기 중인 예약 목록 조회
    */
-  async getPendingReservations(req, res) {
+  async getPendingReservations(req, res, next) {
     try {
-      const { roomId } = req.query;
-      const userId = req.user._id;
-
-      if (!roomId) {
-        return res.status(400).json({
-          resultCode: '400',
-          resultMessage: '방 ID는 필수입니다.'
-        });
-      }
-
-      const pendingReservations = await reservationScheduleService.getPendingReservations(
-        roomId,
+      const { roomId } = req.params;
+      const userId = req.user.id;
+      
+      const reservations = await reservationScheduleService.getPendingReservations(
+        roomId, 
         userId
       );
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '승인 대기 중인 예약 목록 조회 성공',
-        data: pendingReservations
-      });
+      
+      res.json(successResponse(reservations, '승인 대기 중인 예약을 조회했습니다.'));
     } catch (error) {
-      console.error('승인 대기 중인 예약 목록 조회 에러:', error);
-      res.status(500).json({
-        resultCode: '500',
-        resultMessage: '서버 에러가 발생했습니다.',
-        error: error.message
-      });
+      next(error);
     }
   },
 
   /**
    * 예약 일정 생성
    */
-  async createSchedule(req, res) {
+  async createSchedule(req, res, next) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          resultCode: '400',
-          resultMessage: '입력값이 올바르지 않습니다.',
-          errors: errors.array()
-        });
-      }
-
-      const userId = req.user._id;
       const scheduleData = req.body;
-
-      const schedule = await reservationScheduleService.createSchedule(scheduleData, userId);
-
-      res.status(201).json({
-        resultCode: '201',
-        resultMessage: '예약 일정 생성 성공',
-        data: schedule
-      });
-    } catch (error) {
-      console.error('예약 일정 생성 에러:', error);
+      const userId = req.user.id;
       
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        resultCode: statusCode.toString(),
-        resultMessage: error.message || '서버 에러가 발생했습니다.'
-      });
+      const schedule = await reservationScheduleService.createSchedule(scheduleData, userId);
+      
+      res.status(201).json(successResponse(schedule, '예약이 생성되었습니다.'));
+    } catch (error) {
+      next(error);
     }
   },
 
   /**
    * 예약 승인
    */
-  async approveReservation(req, res) {
+  async approveReservation(req, res, next) {
     try {
-      const { scheduleId } = req.params;
-      const userId = req.user._id;
-
-      const result = await reservationScheduleService.approveReservation(scheduleId, userId);
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '예약 승인 성공',
-        data: result
-      });
-    } catch (error) {
-      console.error('예약 승인 에러:', error);
+      const { reservationId } = req.params;
+      const userId = req.user.id;
       
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        resultCode: statusCode.toString(),
-        resultMessage: error.message || '서버 에러가 발생했습니다.'
-      });
+      const result = await reservationScheduleService.approveReservation(reservationId, userId);
+      
+      const message = result.isFullyApproved 
+        ? '예약이 완전히 승인되었습니다.' 
+        : '예약 승인이 추가되었습니다.';
+      
+      res.json(successResponse(result, message));
+    } catch (error) {
+      next(error);
     }
   },
 
   /**
    * 예약 삭제
    */
-  async deleteSchedule(req, res) {
+  async deleteSchedule(req, res, next) {
     try {
       const { scheduleId } = req.params;
-      const userId = req.user._id;
-
-      await reservationScheduleService.deleteSchedule(scheduleId, userId);
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '예약 삭제 성공'
-      });
-    } catch (error) {
-      console.error('예약 삭제 에러:', error);
+      const userId = req.user.id;
       
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        resultCode: statusCode.toString(),
-        resultMessage: error.message || '서버 에러가 발생했습니다.'
-      });
+      await reservationScheduleService.deleteSchedule(scheduleId, userId);
+      
+      res.json(successResponse(null, '예약이 삭제되었습니다.'));
+    } catch (error) {
+      next(error);
     }
   }
 };
 
-module.exports = { reservationScheduleController, validateScheduleInput };
+module.exports = reservationScheduleController;

@@ -1,100 +1,55 @@
 // backend/controllers/reservationController.js
 const reservationService = require('../services/reservationService');
-const { validationResult, body } = require('express-validator');
-
-// 입력 검증 미들웨어
-const validateCategoryInput = [
-  body('name')
-    .notEmpty()
-    .withMessage('카테고리 이름은 필수입니다.')
-    .isLength({ min: 1, max: 20 })
-    .withMessage('카테고리 이름은 1-20자 사이여야 합니다.'),
-  body('icon')
-    .notEmpty()
-    .withMessage('아이콘은 필수입니다.')
-];
+const { successResponse } = require('../utils/responses');
 
 const reservationController = {
   /**
    * 예약 카테고리 목록 조회
    */
-  async getCategories(req, res) {
+  async getCategories(req, res, next) {
     try {
       const categories = await reservationService.getCategories();
-      
-      res.json({
-        resultCode: '200',
-        resultMessage: '예약 카테고리 조회 성공',
-        data: categories
-      });
+      res.json(successResponse(categories, '카테고리 목록을 조회했습니다.'));
     } catch (error) {
-      console.error('예약 카테고리 조회 에러:', error);
-      res.status(500).json({
-        resultCode: '500',
-        resultMessage: '서버 에러가 발생했습니다.',
-        error: error.message
-      });
+      next(error);
     }
   },
 
   /**
    * 예약 카테고리 생성
    */
-  async createCategory(req, res) {
+  async createCategory(req, res, next) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          resultCode: '400',
-          resultMessage: '입력값이 올바르지 않습니다.',
-          errors: errors.array()
-        });
-      }
+      const { name, icon, requiresApproval, isVisitor } = req.body;
+      const userId = req.user.id;
 
-      const { name, icon } = req.body;
-      const userId = req.user._id;
+      const category = await reservationService.createCategory({
+        name,
+        icon,
+        requiresApproval: requiresApproval || false,
+        isVisitor: isVisitor || false
+      }, userId);
 
-      const category = await reservationService.createCategory({ name, icon }, userId);
-
-      res.status(201).json({
-        resultCode: '201',
-        resultMessage: '예약 카테고리 생성 성공',
-        data: category
-      });
+      res.status(201).json(successResponse(category, '카테고리가 생성되었습니다.'));
     } catch (error) {
-      console.error('예약 카테고리 생성 에러:', error);
-      res.status(500).json({
-        resultCode: '500',
-        resultMessage: '서버 에러가 발생했습니다.',
-        error: error.message
-      });
+      next(error);
     }
   },
 
   /**
    * 예약 카테고리 삭제
    */
-  async deleteCategory(req, res) {
+  async deleteCategory(req, res, next) {
     try {
       const { categoryId } = req.params;
-      const userId = req.user._id;
+      const userId = req.user.id;
 
       await reservationService.deleteCategory(categoryId, userId);
-
-      res.json({
-        resultCode: '200',
-        resultMessage: '예약 카테고리 삭제 성공'
-      });
+      res.json(successResponse(null, '카테고리가 삭제되었습니다.'));
     } catch (error) {
-      console.error('예약 카테고리 삭제 에러:', error);
-      
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        resultCode: statusCode.toString(),
-        resultMessage: error.message || '서버 에러가 발생했습니다.'
-      });
+      next(error);
     }
   }
 };
 
-module.exports = { reservationController, validateCategoryInput };
+module.exports = reservationController;
