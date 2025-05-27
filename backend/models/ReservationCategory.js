@@ -23,6 +23,11 @@ const reservationCategorySchema = new mongoose.Schema({
   requiresApproval: {
     type: Boolean,
     default: false
+  },
+  // 방문객 카테고리 여부 추가
+  isVisitor: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -31,9 +36,9 @@ const reservationCategorySchema = new mongoose.Schema({
 // 기본 예약 카테고리 초기화 메서드
 reservationCategorySchema.statics.initializeDefaultCategories = async function(userId) {
   const defaultCategories = [
-    { name: '세탁기', icon: '🌀', type: 'default', requiresApproval: false },
-    { name: '욕실', icon: '🚿', type: 'default', requiresApproval: false },
-    { name: '방문객', icon: '🚪', type: 'default', requiresApproval: true }
+    { name: '세탁기', icon: '🌀', type: 'default', requiresApproval: false, isVisitor: false },
+    { name: '욕실', icon: '🚿', type: 'default', requiresApproval: false, isVisitor: false },
+    { name: '방문객', icon: '🚪', type: 'default', requiresApproval: true, isVisitor: true }
   ];
 
   for (const category of defaultCategories) {
