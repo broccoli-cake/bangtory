@@ -16,6 +16,7 @@ const choreRoutes = require('./routes/choreRoutes');
 const choreScheduleRoutes = require('./routes/choreScheduleRoutes');
 const choreService = require('./services/choreService');
 const reservationRoutes = require('./routes/reservation'); // 예약 라우트 추가
+const reservationService = require('./services/reservationService'); // 예약 서비스 추가
 
 // 디버깅을 위한 로깅 미들웨어
 const app = express(); // Express 애플리케이션 인스턴스 생성
@@ -64,10 +65,15 @@ app.use('/chores', choreRoutes);
 app.use('/chores/schedules', choreScheduleRoutes);
 app.use('/reservations', reservationRoutes); // 예약 라우트 추가
 
-// 기본 카테고리 초기화
+// 집안일 기본 카테고리 초기화
 choreService.initializeDefaultCategories()
-  .then(() => console.log('기본 카테고리 초기화 완료'))
-  .catch(err => console.error('기본 카테고리 초기화 실패:', err));
+  .then(() => console.log('집안일 기본 카테고리 초기화 완료'))
+  .catch(err => console.error('집안일 기본 카테고리 초기화 실패:', err));
+
+// 예약 기본 카테고리 초기화
+reservationService.initializeDefaultCategories()
+  .then(() => console.log('예약 기본 카테고리 초기화 완료'))
+  .catch(err => console.error('예약 기본 카테고리 초기화 실패:', err));
 
 // 기본 라우트
 app.get('/', (req, res) => {
