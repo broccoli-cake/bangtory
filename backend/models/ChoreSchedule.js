@@ -8,7 +8,7 @@ const choreScheduleSchema = new mongoose.Schema({
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Chore',
+    ref: 'ChoreCategory',
     required: true
   },
   assignedTo: {
