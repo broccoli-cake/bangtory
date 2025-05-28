@@ -95,18 +95,18 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
-  if (error.name === 'ValidationError') {
+  if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
-      message: error.message,
-      details: error.details
+      message: err.message,
+      details: err.details
     });
   }
   
-  if (error.name === 'ReservationError') {
-    return res.status(error.statusCode || 400).json({
+  if (err.name === 'ReservationError') {
+    return res.status(err.statusCode || 400).json({
       success: false,
-      message: error.message
+      message: err.message
     });
   }
 
