@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  "오늘 할 일 영역 (추후 구현)",
+                  "오늘 할 일",        //추후 구현
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
