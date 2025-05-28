@@ -37,20 +37,23 @@ const choreScheduleController = {
    * 일정 목록 조회
    */
   async getSchedules(req, res) {
-    try {
-      const { roomId, endDate, categoryId } = req.query;
-      
-      if (!roomId || !endDate) {
-        return res.status(400).json(
-          createResponse(400, '방 ID, 종료일은 필수입니다.')
-        );
-      }
+  try {
+    const { roomId, startDate, endDate, categoryId } = req.query;
 
-      const schedules = await choreScheduleService.getSchedules(
-        roomId,
-        new Date(endDate),
-        categoryId
+    // 필수 값 체크
+    if (!roomId || !startDate || !endDate) {
+      return res.status(400).json(
+        createResponse(400, '방 ID, 시작일, 종료일은 필수입니다.')
       );
+    }
+
+    // 일정 조회
+    const schedules = await choreScheduleService.getSchedules(
+      roomId,
+      new Date(startDate),
+      new Date(endDate),
+      categoryId
+    );
       
       return res.status(200).json(
         createResponse(200, '일정 목록 조회 성공', { schedules })

@@ -7,13 +7,14 @@ const choreScheduleService = {
   /**
    * 특정 방의 일정 목록 조회
    */
-  async getSchedules(roomId, endDate, categoryId) {
-    const query = {
-      room: roomId,
-      date: {
-        $lte: endDate
-      }
-    };
+  async getSchedules(roomId, startDate, endDate, categoryId) {
+  const query = {
+    room: roomId,
+    date: {
+      $gte: startDate,
+      $lte: endDate
+    }
+  };
     if (categoryId) {
       query.category = categoryId;
     }
