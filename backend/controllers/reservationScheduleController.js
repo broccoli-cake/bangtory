@@ -48,12 +48,9 @@ const reservationScheduleController = {
   async getVisitorReservations(req, res, next) {
     try {
       const { roomId } = req.params;
-      const { startDate, endDate } = req.query;
       
       const reservations = await reservationScheduleService.getVisitorReservations(
-        roomId, 
-        startDate, 
-        endDate
+        roomId
       );
       
       res.json(successResponse(reservations, '방문객 예약을 조회했습니다.'));

@@ -46,15 +46,11 @@ const reservationScheduleService = {
   },
 
   /**
-   * 방문객 예약 조회 (특정 날짜 범위)
+   * 방문객 예약 조회 (승인)
    */
-  async getVisitorReservations(roomId, startDate, endDate) {
+  async getVisitorReservations(roomId) {
     const query = {
       room: roomId,
-      specificDate: {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      },
       status: 'approved'
     };
 
@@ -65,7 +61,7 @@ const reservationScheduleService = {
         match: { isVisitor: true }
       })
       .populate('reservedBy', 'nickname profileImageUrl')
-      .sort({ specificDate: 1, startHour: 1 });
+      .sort({ createdAt: -1 });
 
     return schedules.filter(schedule => schedule.category);
   },
