@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
-//import 'package:frontend/settings/room/room_management_screen.dart'; // 추가
+import 'package:frontend/screens/onboarding_screen.dart'; // 위에 올려주신 OnboardingScreen
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,8 +28,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: const Color(0xFFFA2E55),
             ),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // 다이얼로그 닫기
               // TODO: 로그아웃 처리 로직 추가
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                    (route) => false,
+              );
             },
             child: const Text('확인'),
           ),
@@ -108,10 +114,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '방 관리',
             onTap: () {
-              //TODO: 방관리 화면으로 이동!!!!!!! 코드는 구현, 연결은 아직
+              // TODO: 방관리 화면으로 이동
             },
           ),
-
           _buildSettingsItem(
             label: '공지사항',
             onTap: () {
@@ -126,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: '로그아웃',
             textColor: const Color(0xFFFA2E55),
             onTap: _showLogoutDialog,
-            trailing: const SizedBox.shrink(), // > 아이콘 제거
+            trailing: const SizedBox.shrink(),
           ),
         ],
       ),

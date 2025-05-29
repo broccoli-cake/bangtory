@@ -1,11 +1,13 @@
-// home_screen.dart
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:frontend/screens/bathroom_reserve_screen.dart';
 import 'package:frontend/screens/dish_washing.dart';
 import 'package:frontend/screens/trash_screen.dart';
 import 'package:frontend/screens/visit_reserve_screen.dart';
-import 'cleaning_duty_screen.dart';   // ⬅︎ 새 화면 import
+import 'cleaning_duty_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
+import 'package:frontend/settings/room/calendar.dart';
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -25,43 +27,43 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isChoreSelected = true;
   List<String> participants = [];
 
-  /* ----------------------- 참여자 관련 로직 ----------------------- */
-  void _addParticipant(String name) {
-    setState(() => participants.add(name));
+  String _generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final rand = Random();
+    return List.generate(6, (index) => chars[rand.nextInt(chars.length)]).join();
   }
 
-  void _showAddParticipantDialog() {
-    String newName = '';
+  void _showInviteCodeDialog() {
+    final inviteCode = _generateInviteCode();
+
     showDialog(
       context: context,
-      builder: (_) =>
-          AlertDialog(
-            title: const Text('참여자 추가'),
-            content: TextField(
-              autofocus: true,
-              decoration: const InputDecoration(hintText: '이름 입력'),
-              onChanged: (v) => newName = v,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('취소'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (newName
-                      .trim()
-                      .isNotEmpty) _addParticipant(newName.trim());
-                  Navigator.pop(context);
-                },
-                child: const Text('추가'),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text('초대 코드'),
+        content: SelectableText(
+          inviteCode,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: inviteCode));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('초대 코드가 복사되었습니다')),
+              );
+            },
+            child: const Text('복사'),
+          ),
+        ],
+      ),
     );
   }
 
-  /* ----------------------- UI ----------------------- */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,7 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.white,
                         child: Column(
                           children: [
-                            // 제목 + 닫기 버튼
                             Padding(
                               padding: const EdgeInsets.all(16),
                               child: Row(
@@ -130,7 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             const Divider(),
-                            // 알림이 없다는 메시지 중앙 표시     임시로!
                             Expanded(
                               child: Center(
                                 child: Text(
@@ -150,97 +150,70 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               );
             },
-
-          ),
+          )
         ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            children: [
-              /* ---------- 참여자 카드 ---------- */
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    _buildProfileSection(),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      children:
-                      participants
-                          .map((name) => _buildParticipant(name))
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-              /* ---------- 탭 스위치 ---------- */
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            _buildProfileSection(),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildToggleButton('집안일', isChoreSelected, () {
+                  setState(() => isChoreSelected = true);
+                }),
+                const SizedBox(width: 16),
+                _buildToggleButton('예약', !isChoreSelected, () {
+                  setState(() => isChoreSelected = false);
+                }),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (isChoreSelected)
+              Wrap(
+                spacing: 40,
+                runSpacing: 24,
+                alignment: WrapAlignment.center,
                 children: [
-                  _buildToggleButton('집안일', isChoreSelected, () {
-                    setState(() => isChoreSelected = true);
-                  }),
-                  const SizedBox(width: 16),
-                  _buildToggleButton('예약', !isChoreSelected, () {
-                    setState(() => isChoreSelected = false);
-                  }),
+                  _buildTaskItem(Icons.cleaning_services, '청소'),
+                  _buildTaskItem(Icons.delete_outline, '분리수거'),
+                  _buildTaskItem(Icons.local_dining, '설거지'),
+                  _buildTaskItem(Icons.add, '추가'),
+                ],
+              )
+            else
+              Wrap(
+                spacing: 40,
+                runSpacing: 24,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildTaskItem(Icons.bathtub, '욕실'),
+                  _buildTaskItem(Icons.local_laundry_service, '세탁기'),
+                  _buildTaskItem(Icons.emoji_people, '방문객'),
+                  _buildTaskItem(Icons.add, '추가'),
                 ],
               ),
-              const SizedBox(height: 20),
-              /* ---------- 카테고리 ---------- */
-              if (isChoreSelected)
-                Wrap(
-                  spacing: 40,
-                  runSpacing: 24,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildTaskItem(Icons.cleaning_services, '청소'),
-                    _buildTaskItem(Icons.delete_outline, '분리수거'),
-                    _buildTaskItem(Icons.local_dining, '설거지'),
-                    _buildTaskItem(Icons.add, '추가'),
-                  ],
-                )
-              else
-                Wrap(
-                  spacing: 40,
-                  runSpacing: 24,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildTaskItem(Icons.bathtub, '욕실'),
-                    _buildTaskItem(Icons.local_laundry_service, '세탁기'),
-                    _buildTaskItem(Icons.emoji_people, '방문객'),
-                    _buildTaskItem(Icons.add, '추가'),
-                  ],
-                ),
-              const SizedBox(height: 24),
-              /* ---------- 오늘 할 일 카드 ---------- */
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                    '오늘 할 일', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
-          ),
+              child: const Text(
+                  '오늘 할 일', style: TextStyle(color: Colors.grey)),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
-  /* ------------------ 위젯 빌더 ------------------ */
   Widget _buildProfileSection() =>
       ListTile(
         leading: CircleAvatar(
@@ -252,37 +225,10 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: const Text('방장'),
         trailing: IconButton(
-          icon: const Icon(Icons.add_circle_outline),
-          onPressed: _showAddParticipantDialog,
+          icon: const Icon(Icons.share),
+          onPressed: _showInviteCodeDialog,
         ),
       );
-
-  Widget _buildParticipant(String name) =>
-      Column(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: _getColorForName(name),
-            child: const Icon(Icons.face, color: Colors.white),
-          ),
-          const SizedBox(height: 4),
-          Text(name, style: const TextStyle(fontSize: 12)),
-        ],
-      );
-
-  Color _getColorForName(String name) {
-    final colors = [
-      Colors.yellow,
-      Colors.lightGreen,
-      Colors.blue,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal,
-      Colors.brown,
-    ];
-    int index = name.hashCode % colors.length;
-    return colors[index];
-  }
 
   Widget _buildToggleButton(String text, bool isSelected, VoidCallback onTap) =>
       GestureDetector(
@@ -301,36 +247,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () {
         if (label == '청소') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CleaningDutyScreen()),
-          );
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const CleaningDutyScreen()));
         } else if (label == '분리수거') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const trashscreen()),
-          );
-        }
-        else if (label == '설거지') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const dishwashing()),
-          );
-          // 필요한 다른 라벨도 여기에 추가 가능
-        }
-        else if (label == '욕실') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BathroomReserve()),
-          );
-          // 필요한 다른 라벨도 여기에 추가 가능
-        }
-        else if (label == '방문객') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const VisitReserve()),
-          );
-          // 필요한 다른 라벨도 여기에 추가 가능
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const trashscreen()));
+        } else if (label == '설거지') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const dishwashing()));
+        } else if (label == '욕실') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const BathroomReserve()));
+        } else if (label == '방문객') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const VisitReserve()));
         }
       },
       child: Column(
@@ -342,7 +272,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   Widget _buildBottomNavBar(BuildContext context) =>
       BottomNavigationBar(
@@ -360,10 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         onTap: (index) {
           if (index == 4) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            );
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()));
+          }else if(index==0){
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CalendarScreen()));
           }
         },
       );

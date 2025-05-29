@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
-import 'go_room_screen.dart'; // 뒤로 가기용
+import 'home_screen.dart';
 
-class RoomEnterScreen extends StatelessWidget {
+class RoomEnterScreen extends StatefulWidget {
   const RoomEnterScreen({super.key});
+
+  @override
+  State<RoomEnterScreen> createState() => _RoomEnterScreenState();
+}
+
+class _RoomEnterScreenState extends State<RoomEnterScreen> {
+  final TextEditingController _inviteCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _inviteCodeController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -13,7 +27,6 @@ class RoomEnterScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 뒤로 가기 화살표
               IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -21,26 +34,18 @@ class RoomEnterScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 24),
-              // 설명 텍스트
               const Text(
                 '방장에게 받은\n초대코드를 입력하세요.',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 32),
-              // "초대 코드" 라벨
               const Text(
                 '초대 코드',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-              // 초대코드 입력창
               TextField(
+                controller: _inviteCodeController,
                 decoration: InputDecoration(
                   hintText: '예: ABC123',
                   filled: true,
@@ -53,26 +58,37 @@ class RoomEnterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              // 방 입장하기 버튼
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: 방 입장 처리
+                    // 초대코드가 입력되어 있을 때만 이동하도록 간단 체크
+                    if (_inviteCodeController.text.trim().isNotEmpty) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomeScreen(
+                            roomName: '우리 방',   // 여기에 실제 방 이름 넣어주세요
+                            userName: 'user1',    // user1 아이콘 표시용 이름
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('초대 코드를 입력해주세요')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFA2E55), // 빨간색
+                    backgroundColor: const Color(0xFFFA2E55),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: const Text(
                     '방 입장하기',
-                    style: TextStyle(
-                      color: Colors.white, // 버튼 안 글씨 하얀색
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
