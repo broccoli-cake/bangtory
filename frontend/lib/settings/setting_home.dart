@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/settings/notice/notice_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -112,7 +113,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '공지사항',
             onTap: () {
-              // TODO: 공지사항 화면으로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NoticeScreen()),
+              );
             },
           ),
           const SizedBox(height: 10),
