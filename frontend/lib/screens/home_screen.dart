@@ -5,6 +5,7 @@ import 'package:frontend/screens/dish_washing.dart';
 import 'package:frontend/screens/trash_screen.dart';
 import 'package:frontend/screens/visit_reserve_screen.dart';
 import 'cleaning_duty_screen.dart';   // ⬅︎ 새 화면 import
+import 'package:frontend/settings/setting_home.dart';
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -33,27 +34,30 @@ class _HomeScreenState extends State<HomeScreen> {
     String newName = '';
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('참여자 추가'),
-        content: TextField(
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '이름 입력'),
-          onChanged: (v) => newName = v,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+      builder: (_) =>
+          AlertDialog(
+            title: const Text('참여자 추가'),
+            content: TextField(
+              autofocus: true,
+              decoration: const InputDecoration(hintText: '이름 입력'),
+              onChanged: (v) => newName = v,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (newName
+                      .trim()
+                      .isNotEmpty) _addParticipant(newName.trim());
+                  Navigator.pop(context);
+                },
+                child: const Text('추가'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (newName.trim().isNotEmpty) _addParticipant(newName.trim());
-              Navigator.pop(context);
-            },
-            child: const Text('추가'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -100,7 +104,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Wrap(
                       spacing: 12,
                       children:
-                      participants.map((name) => _buildParticipant(name)).toList(),
+                      participants
+                          .map((name) => _buildParticipant(name))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -153,7 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text('오늘 할 일', style: TextStyle(color: Colors.grey)),
+                child: const Text(
+                    '오늘 할 일', style: TextStyle(color: Colors.grey)),
               ),
             ],
           ),
@@ -164,31 +171,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /* ------------------ 위젯 빌더 ------------------ */
-  Widget _buildProfileSection() => ListTile(
-    leading: CircleAvatar(
-      radius: 24,
-      backgroundColor: Colors.pinkAccent,
-      child: const Icon(Icons.face, color: Colors.white),
-    ),
-    title: Text(widget.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-    subtitle: const Text('방장'),
-    trailing: IconButton(
-      icon: const Icon(Icons.add_circle_outline),
-      onPressed: _showAddParticipantDialog,
-    ),
-  );
+  Widget _buildProfileSection() =>
+      ListTile(
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundColor: Colors.pinkAccent,
+          child: const Icon(Icons.face, color: Colors.white),
+        ),
+        title: Text(widget.userName,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: const Text('방장'),
+        trailing: IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          onPressed: _showAddParticipantDialog,
+        ),
+      );
 
-  Widget _buildParticipant(String name) => Column(
-    children: [
-      CircleAvatar(
-        radius: 24,
-        backgroundColor: _getColorForName(name),
-        child: const Icon(Icons.face, color: Colors.white),
-      ),
-      const SizedBox(height: 4),
-      Text(name, style: const TextStyle(fontSize: 12)),
-    ],
-  );
+  Widget _buildParticipant(String name) =>
+      Column(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: _getColorForName(name),
+            child: const Icon(Icons.face, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(name, style: const TextStyle(fontSize: 12)),
+        ],
+      );
 
   Color _getColorForName(String name) {
     final colors = [
@@ -264,19 +274,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
-
-  Widget _buildBottomNavBar(BuildContext context) => BottomNavigationBar(
-    currentIndex: 2,
-    type: BottomNavigationBarType.fixed,
-    selectedItemColor: const Color(0xFFFA2E55),
-    unselectedItemColor: Colors.grey,
-    items: const [
-      BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '캘린더'),
-      BottomNavigationBarItem(icon: Icon(Icons.access_time), label: '시간표'),
-      BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-      BottomNavigationBarItem(icon: Icon(Icons.chat), label: '채팅'),
-      BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
-    ],
-    onTap: (_) {}, // 추후 이동 구현
-  );
+  Widget _buildBottomNavBar(BuildContext context) =>
+      BottomNavigationBar(
+        currentIndex: 2,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFFFA2E55),
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: '캘린더'),
+          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: '시간표'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: '채팅'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
+        ],
+        onTap: (index) {
+          if (index == 4) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          }
+        },
+      );
 }
