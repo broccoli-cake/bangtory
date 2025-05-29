@@ -1,6 +1,5 @@
-/*
-import 'package:flutter/material.dart';
-import 'profile_setup_screen.dart'; // 추가: 프로필 설정 화면 import
+/*import 'package:flutter/material.dart';
+import 'profile_setup_screen.dart';
 import 'package:frontend/services/auth_services.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -77,39 +76,16 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // 카카오 로그인 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    bool success = await AuthService().signInWithKakao();
-                    if (success) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('카카오 로그인에 실패했습니다.')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFFE812), // 카카오 노랑
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text('카카오 로그인'),
-                ),
-              ),
+
               const SizedBox(height: 12),
 
-              // 구글 로그인 버튼
+              // ✅ 구글 로그인 버튼 추가
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton(
                   onPressed: () {
-                    AuthService().signInWithGoogle(context); // ✅ context 전달!
+                    AuthService().signInWithGoogle(context); // ✅ 이렇게 호출만 하면 됨!
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.grey),
@@ -117,8 +93,6 @@ class LoginScreen extends StatelessWidget {
                   child: const Text('구글 로그인'),
                 ),
               ),
-
-
 
               const SizedBox(height: 40),
             ],
@@ -128,5 +102,4 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
-
 */
