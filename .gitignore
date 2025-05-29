@@ -64,5 +64,10 @@ frontend/.metadata
 frontend/pubspec.lock
 node_modules/
 
+# React 관련
+build/
+dist/
+.env
+.env.*
 
 .idea/
