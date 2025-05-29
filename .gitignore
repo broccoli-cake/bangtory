@@ -62,6 +62,7 @@ frontend/.flutter-plugins
 .idea/
 frontend/.metadata
 frontend/pubspec.lock
+node_modules/
 
 
 .idea/
