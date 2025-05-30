@@ -8,6 +8,7 @@ import 'package:frontend/screens/visit_reserve_screen.dart';
 import 'cleaning_duty_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
+import 'package:frontend/screens/chat_screen.dart'; //
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -291,9 +292,12 @@ class _HomeScreenState extends State<HomeScreen> {
           if (index == 4) {
             Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()));
-          }else if(index==0){
+          } else if (index == 0) {
             Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const CalendarScreen()));
+          } else if (index == 3) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ChatRoomScreen()));
           }
         },
       );
