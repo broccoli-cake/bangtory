@@ -1,39 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-class washerReserve extends StatefulWidget {
-  const washerReserve({super.key});
+class WasherReserveScreen extends StatefulWidget {
+  const WasherReserveScreen({super.key});
 
   @override
-  State<washerReserve> createState() => _washerReserveScreen();
+  State<WasherReserveScreen> createState() => _WasherReserveScreenState();
 }
 
-class _washerReserveScreen extends State<washerReserve> {
-  DateTime selectedDate = DateTime.now();
-  TimeOfDay selectedTime = TimeOfDay.now();
+class _WasherReserveScreenState extends State<WasherReserveScreen> {
+  final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
+  final List<String> members = ['김민영', '홍수한', '민수연', '최현정'];
+
+  String selectedDay = '월';
+  TimeOfDay? startTime;
+  TimeOfDay? endTime;
+  bool repeatWeekly = false;
   String? selectedPerson;
-  List<String> members = ['김민영', '홍수한', '민수연', '최현정'];
 
-  final List<Map<String, dynamic>> dutyList = [];
+  List<Map<String, dynamic>> reservations = [];
 
-  void _addDuty() {
-    if (selectedPerson != null) {
+  void _selectTime(bool isStart) async {
+    TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
       setState(() {
-        dutyList.add({
-          'date': selectedDate,
-          'person': selectedPerson,
-          'checked': false,
-        });
-        selectedPerson = null;
+        if (isStart) {
+          startTime = picked;
+        } else {
+          endTime = picked;
+        }
       });
     }
   }
 
-  void _deleteDuty(int index) {
+  void _addReservation() {
+    if (startTime != null && endTime != null && selectedPerson != null) {
+      reservations.add({
+        'day': selectedDay,
+        'start': startTime!,
+        'end': endTime!,
+        'person': selectedPerson!,
+        'repeat': repeatWeekly,
+      });
+      setState(() {
+        startTime = null;
+        endTime = null;
+        selectedPerson = null;
+        repeatWeekly = false;
+      });
+    }
+  }
+
+  void _showReservationDialog(Map<String, dynamic> reservation) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('삭제하시겠습니까?'),
+        title: Text('예약 정보'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('예약자: ${reservation['person']}'),
+            Text(
+              '시간: ${reservation['start'].format(context)} ~ ${reservation['end'].format(context)}',
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -42,161 +76,221 @@ class _washerReserveScreen extends State<washerReserve> {
           TextButton(
             onPressed: () {
               setState(() {
-                dutyList.removeAt(index);
+                reservations.remove(reservation);
               });
               Navigator.pop(context);
             },
-            child: const Text('삭제'),
+            child: const Text('삭제', style: TextStyle(color: Color(0xFFFA2E55))),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('욕실 예약')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+  Widget _buildSchedule() {
+    return Column(
+      children: [
+        Row(
           children: [
-            // 등록된 일정 리스트
-            Expanded(
-              child: ListView.builder(
-                itemCount: dutyList.length,
-                itemBuilder: (context, index) {
-                  final item = dutyList[index];
-                  DateTime dt = item['date'];
-                  String formattedDateTime =
-                  DateFormat('yyyy-MM-dd HH:mm').format(dt);
-                  return GestureDetector(
-                    onLongPress: () => _deleteDuty(index),
-                    child: ListTile(
-                      title: Text("$formattedDateTime - ${item['person']}"),
-                      trailing: Checkbox(
-                        value: item['checked'],
-                        activeColor: Colors.green,
-                        onChanged: (val) {
-                          setState(() {
-                            dutyList[index]['checked'] = val!;
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const Divider(),
-            // 날짜 선택
-            Row(
-              children: [
-                const Text("날짜 선택: "),
-                TextButton(
-                  onPressed: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        selectedDate = DateTime(
-                          picked.year,
-                          picked.month,
-                          picked.day,
-                          selectedDate.hour,
-                          selectedDate.minute,
-                        );
-                      });
-                    }
-                  },
-                  child: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                ),
-              ],
-            ),
-            // 시간 선택 버튼 (토마토 아이콘)
-            Row(
-              children: [
-                const Text("시간 선택: "),
-                IconButton(
-                  onPressed: () async {
-                    TimeOfDay? pickedTime = await showTimePicker(
-                      context: context,
-                      initialTime: selectedTime,
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: Colors.redAccent, // 토마토 빨강
-                              onPrimary: Colors.white,
-                              onSurface: Colors.black,
-                            ),
-                            timePickerTheme: const TimePickerThemeData(
-                              dayPeriodColor: Colors.lightGreenAccent,
-                            ),
-                            textButtonTheme: TextButtonThemeData(
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.redAccent,
-                              ),
-                            ),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (pickedTime != null) {
-                      setState(() {
-                        selectedTime = pickedTime;
-                        selectedDate = DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-                      });
-                    }
-                  },
-                  icon: const Text(
-                    '🍅',
-                    style: TextStyle(fontSize: 28),
+            const SizedBox(width: 30),
+            ...days.map(
+                  (d) => Expanded(
+                child: Center(
+                  child: Text(
+                    d,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  tooltip: '시간 선택',
                 ),
-                const SizedBox(width: 8),
-                Text(selectedTime.format(context)),
-              ],
-            ),
-            // 당번 선택
-            Wrap(
-              spacing: 8.0,
-              children: members.map((name) {
-                final isSelected = selectedPerson == name;
-                return ChoiceChip(
-                  label: Text(name),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      selectedPerson = name;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.black,
               ),
-              onPressed: _addDuty,
-              child: const Text('등록하기'),
             ),
           ],
         ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.builder(
+            itemCount: 24,
+            itemBuilder: (_, hour) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 30,
+                        child: Text(
+                          '$hour',
+                          style: const TextStyle(fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      ...List.generate(7, (dayIndex) {
+                        final day = days[dayIndex];
+                        final matching = reservations.where((r) =>
+                        r['day'] == day &&
+                            r['start'].hour <= hour &&
+                            r['end'].hour > hour);
+
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: matching.isNotEmpty
+                                ? () => _showReservationDialog(matching.first)
+                                : null,
+                            child: Container(
+                              height: 60,
+                              margin: const EdgeInsets.all(1),
+                              decoration: BoxDecoration(
+                                color: matching.isNotEmpty
+                                    ? Colors.redAccent.withOpacity(0.5)
+                                    : Colors.grey[100],
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: matching.isNotEmpty
+                                  ? Center(
+                                child: Text(
+                                  matching.first['person'],
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              )
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("세탁기 예약")),
+      body: Column(
+        children: [
+          Expanded(child: _buildSchedule()),
+          const Divider(height: 1),
+          Container(
+            color: Colors.grey.shade100,
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 요일 선택
+                Row(
+                  children: [
+                    const Text("요일: "),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        String? result = await showModalBottomSheet<String>(
+                          context: context,
+                          builder: (_) => ListView(
+                            shrinkWrap: true,
+                            children: days
+                                .map((d) => ListTile(
+                              title: Text(d),
+                              onTap: () => Navigator.pop(context, d),
+                            ))
+                                .toList(),
+                          ),
+                        );
+                        if (result != null) {
+                          setState(() {
+                            selectedDay = result;
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Color(0xFFFA2E55)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(selectedDay),
+                      ),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // 시간 선택
+                Row(
+                  children: [
+                    const Text("시간: "),
+                    TextButton(
+                      onPressed: () => _selectTime(true),
+                      child: Text(startTime == null
+                          ? "--:--"
+                          : startTime!.format(context)),
+                    ),
+                    const Text(" ~ "),
+                    TextButton(
+                      onPressed: () => _selectTime(false),
+                      child: Text(endTime == null
+                          ? "--:--"
+                          : endTime!.format(context)),
+                    ),
+                  ],
+                ),
+
+                // 반복 버튼
+                Row(
+                  children: [
+                    const Text("매주 반복: "),
+                    Switch(
+                      value: repeatWeekly,
+                      onChanged: (val) {
+                        setState(() {
+                          repeatWeekly = val;
+                        });
+                      },
+                      activeColor: Color(0xFFFA2E55),
+                    )
+                  ],
+                ),
+
+                // 이름 선택
+                Wrap(
+                  spacing: 8.0,
+                  children: members.map((name) {
+                    final isSelected = selectedPerson == name;
+                    return ChoiceChip(
+                      label: Text(name),
+                      selected: isSelected,
+                      onSelected: (_) {
+                        setState(() {
+                          selectedPerson = name;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+
+                // 등록 버튼
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFFA2E55),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _addReservation,
+                    child: const Text("등록하기"),
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
       ),
     );
   }

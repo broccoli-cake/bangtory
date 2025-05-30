@@ -2,13 +2,15 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/bathroom_reserve_screen.dart';
+import 'package:frontend/screens/washer_reserve.dart';
 import 'package:frontend/screens/dish_washing.dart';
 import 'package:frontend/screens/trash_screen.dart';
 import 'package:frontend/screens/visit_reserve_screen.dart';
 import 'cleaning_duty_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
-import 'package:frontend/screens/chat_screen.dart'; //
+import 'package:frontend/screens/chat_screen.dart';
+import 'package:frontend/screens/full_schedule_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -258,10 +260,13 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const dishwashing()));
         } else if (label == '욕실') {
           Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const BathroomReserve()));
+              MaterialPageRoute(builder: (_) => const BathScheduleScreen()));
         } else if (label == '방문객') {
           Navigator.push(context,
               MaterialPageRoute(builder: (_) => const VisitReserve()));
+        } else if (label == '세탁기') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const WasherReserveScreen()));
         }
       },
       child: Column(
@@ -298,6 +303,9 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (index == 3) {
             Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const ChatRoomScreen()));
+          } else if (index == 1) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FullScheduleScreen()));
           }
         },
       );
