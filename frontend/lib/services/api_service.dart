@@ -508,12 +508,17 @@ class ApiService {
     required String categoryId,
   }) async {
     try {
+      // ⭐ 완전히 새로운 URL 구조 ⭐
+      final url = '$baseUrl/reservations/category-schedules/$roomId/$categoryId';
+
+      print('API 요청 URL: $url');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/reservations/rooms/$roomId/categories/$categoryId/schedules'),
+        Uri.parse(url),
         headers: _headers,
       );
 
-      print('Get Category Weekly Reservations Response: ${response.statusCode} - ${response.body}');
+      print('Response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -522,7 +527,7 @@ class ApiService {
         throw Exception('카테고리별 예약 조회 실패: ${response.body}');
       }
     } catch (e) {
-      print('Get Category Weekly Reservations Error: $e');
+      print('Error: $e');
       throw Exception('카테고리별 예약 조회 중 오류 발생: $e');
     }
   }
