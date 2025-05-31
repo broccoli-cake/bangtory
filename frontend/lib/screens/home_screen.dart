@@ -32,12 +32,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+    _loadRoomMembers(); // 방 멤버 로드 추가
   }
 
   Future<void> _loadCategories() async {
     final appState = Provider.of<AppState>(context, listen: false);
     await appState.loadChoreCategories();
     await appState.loadReservationCategories();
+  }
+
+  // 방 멤버 로드 메서드 추가
+  Future<void> _loadRoomMembers() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    await appState.loadRoomMembers();
   }
 
   // 카테고리별 아이콘 매핑
@@ -326,18 +333,26 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: () async {
+              // 모든 데이터 새로고침
+              await _loadCategories();
+              await _loadRoomMembers();
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.black),
             onPressed: () {
               // 알림 처리
             },
-          )
+          ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildProfileSection(),
+            _buildProfileSection(), // 통합된 프로필 섹션
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -389,24 +404,176 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProfileSection() => ListTile(
-    leading: CircleAvatar(
-      radius: 24,
-      backgroundColor: Colors.pinkAccent,
-      child: const Icon(Icons.face, color: Colors.white),
-    ),
-    title: Text(widget.userName,
-        style: const TextStyle(fontWeight: FontWeight.bold)),
-    subtitle: Consumer<AppState>(
+  Widget _buildProfileSection() {
+    return Consumer<AppState>(
       builder: (context, appState, child) {
-        return Text(appState.currentRoom?.isOwner == true ? '방장' : '멤버');
+        // 멤버 정렬: 방장을 맨 앞으로, 나머지는 입장한 순서대로
+        final sortedMembers = List<Map<String, dynamic>>.from(appState.roomMembers);
+        sortedMembers.sort((a, b) {
+          // 방장이면 맨 앞으로
+          if (a['isOwner'] == true && b['isOwner'] != true) return -1;
+          if (b['isOwner'] == true && a['isOwner'] != true) return 1;
+
+          // 둘 다 방장이 아니거나 둘 다 방장이면 입장한 순서대로
+          DateTime? aTime;
+          DateTime? bTime;
+
+          // joinedAt 시도
+          if (a['joinedAt'] != null) {
+            aTime = DateTime.tryParse(a['joinedAt'].toString());
+          }
+          if (b['joinedAt'] != null) {
+            bTime = DateTime.tryParse(b['joinedAt'].toString());
+          }
+
+          // joinedAt이 없으면 createdAt 시도
+          if (aTime == null && a['createdAt'] != null) {
+            aTime = DateTime.tryParse(a['createdAt'].toString());
+          }
+          if (bTime == null && b['createdAt'] != null) {
+            bTime = DateTime.tryParse(b['createdAt'].toString());
+          }
+
+          // 둘 다 있으면 비교
+          if (aTime != null && bTime != null) {
+            return aTime.compareTo(bTime);
+          }
+
+          // 시간 정보가 없으면 _id로 비교
+          final aId = a['_id']?.toString() ?? '';
+          final bId = b['_id']?.toString() ?? '';
+          return aId.compareTo(bId);
+        });
+
+        return Container(
+          height: 70,
+          child: Row(
+            children: [
+              // 멤버들
+              if (sortedMembers.isNotEmpty)
+                Expanded(
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: sortedMembers.length,
+                    itemBuilder: (context, index) {
+                      final member = sortedMembers[index];
+                      final isCurrentUser = member['userId'].toString() == appState.currentUser?.id;
+                      final isOwner = member['isOwner'] == true;
+
+                      return Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        child: Column(
+                          children: [
+                            Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: isCurrentUser
+                                      ? const Color(0xFFFA2E55)
+                                      : Colors.grey[400],
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                // 방장 표시
+                                if (isOwner)
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.star,
+                                        color: Colors.white,
+                                        size: 10,
+                                      ),
+                                    ),
+                                  ),
+                                // 나 표시 (방장이 아닌 경우)
+                                if (isCurrentUser && !isOwner)
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFA2E55),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 10,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: 65,
+                              child: Text(
+                                member['nickname']?.toString() ?? '멤버',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isCurrentUser ? const Color(0xFFFA2E55) : Colors.grey[700],
+                                  fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              // 초대 버튼 (항상 표시)
+              Container(
+                margin: EdgeInsets.only(left: sortedMembers.isNotEmpty ? 8 : 0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _showInviteCodeDialog,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        child: const Icon(
+                          Icons.share,
+                          color: Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
       },
-    ),
-    trailing: IconButton(
-      icon: const Icon(Icons.share),
-      onPressed: _showInviteCodeDialog,
-    ),
-  );
+    );
+  }
 
   Widget _buildToggleButton(String text, bool isSelected, VoidCallback onTap) =>
       GestureDetector(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
+import '../utils/dialog_utils.dart';
 
 class DynamicReservationScreen extends StatefulWidget {
   final Map<String, dynamic> category;
@@ -134,24 +135,30 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   }
 
   Future<void> _deleteReservation(Map<String, dynamic> reservation) async {
-    final appState = Provider.of<AppState>(context, listen: false);
+    final shouldDelete = await DialogUtils.showDeleteConfirmDialog(
+      context,
+      title: '예약 삭제',
+      content: '${widget.category['name']} 예약을 삭제하시겠습니까?',
+    );
 
-    try {
-      await appState.deleteReservationSchedule(reservation['_id']);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('예약이 삭제되었습니다.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('삭제 실패: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (shouldDelete) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      try {
+        await appState.deleteReservationSchedule(reservation['_id']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('예약이 삭제되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('삭제 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

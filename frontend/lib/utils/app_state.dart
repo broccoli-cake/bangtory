@@ -166,7 +166,25 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadChoreCategories() async {
     try {
-      _choreCategories = await _apiService.getChoreCategories();
+      final categories = await _apiService.getChoreCategories();
+
+      // 생성 순서대로 정렬 (기본 카테고리 먼저, 그 다음 생성시간 순)
+      categories.sort((a, b) {
+        // 기본 카테고리를 먼저 표시
+        final aType = a['type']?.toString() ?? 'custom';
+        final bType = b['type']?.toString() ?? 'custom';
+
+        if (aType == 'default' && bType != 'default') return -1;
+        if (bType == 'default' && aType != 'default') return 1;
+
+        // 같은 타입이면 생성시간 순 (createdAt 기준)
+        final aCreatedAt = DateTime.tryParse(a['createdAt']?.toString() ?? '') ?? DateTime.now();
+        final bCreatedAt = DateTime.tryParse(b['createdAt']?.toString() ?? '') ?? DateTime.now();
+
+        return aCreatedAt.compareTo(bCreatedAt);
+      });
+
+      _choreCategories = categories;
       notifyListeners();
     } catch (e) {
       print('Load chore categories error: $e');
@@ -182,6 +200,8 @@ class AppState extends ChangeNotifier {
         name: name,
         icon: icon,
       );
+
+      // 새로 생성된 카테고리를 리스트 끝에 추가
       _choreCategories.add(newCategory);
       notifyListeners();
     } catch (e) {
@@ -203,7 +223,25 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadReservationCategories() async {
     try {
-      _reservationCategories = await _apiService.getReservationCategories();
+      final categories = await _apiService.getReservationCategories();
+
+      // 생성 순서대로 정렬 (기본 카테고리 먼저, 그 다음 생성시간 순)
+      categories.sort((a, b) {
+        // 기본 카테고리를 먼저 표시
+        final aType = a['type']?.toString() ?? 'custom';
+        final bType = b['type']?.toString() ?? 'custom';
+
+        if (aType == 'default' && bType != 'default') return -1;
+        if (bType == 'default' && aType != 'default') return 1;
+
+        // 같은 타입이면 생성시간 순 (createdAt 기준)
+        final aCreatedAt = DateTime.tryParse(a['createdAt']?.toString() ?? '') ?? DateTime.now();
+        final bCreatedAt = DateTime.tryParse(b['createdAt']?.toString() ?? '') ?? DateTime.now();
+
+        return aCreatedAt.compareTo(bCreatedAt);
+      });
+
+      _reservationCategories = categories;
       notifyListeners();
     } catch (e) {
       print('Load reservation categories error: $e');
@@ -223,6 +261,8 @@ class AppState extends ChangeNotifier {
         requiresApproval: requiresApproval,
         isVisitor: isVisitor,
       );
+
+      // 새로 생성된 카테고리를 리스트 끝에 추가
       _reservationCategories.add(newCategory);
       notifyListeners();
     } catch (e) {

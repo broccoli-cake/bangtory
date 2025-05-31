@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
+import '../utils/dialog_utils.dart';
 
 class DynamicChoreScreen extends StatefulWidget {
   final Map<String, dynamic> category;
@@ -66,22 +67,25 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
   }
 
   Future<void> _deleteDuty(Map<String, dynamic> schedule) async {
-    final appState = Provider.of<AppState>(context, listen: false);
+    final shouldDelete = await DialogUtils.showDeleteConfirmDialog(
+      context,
+      title: '일정 삭제',
+      content: '${widget.category['name']} 일정을 삭제하시겠습니까?',
+    );
 
-    try {
-      await appState.deleteChoreSchedule(schedule['_id']);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('일정이 삭제되었습니다.')),
-      );
-
-      // 데이터 새로고침
-      await _loadData();
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정 삭제 실패: $e')),
-      );
+    if (shouldDelete) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      try {
+        await appState.deleteChoreSchedule(schedule['_id']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('일정이 삭제되었습니다.')),
+        );
+        await _loadData();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('일정 삭제 실패: $e')),
+        );
+      }
     }
   }
 
