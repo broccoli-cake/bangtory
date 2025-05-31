@@ -133,23 +133,40 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   Widget _buildVisitorReservationList() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        final reservations = appState.reservationSchedules
-            .where((reservation) =>
-        reservation['category'] != null &&
-            reservation['category']['_id'] == widget.category['_id'])
-            .toList();
+        // 안전한 필터링
+        final reservations = appState.reservationSchedules.where((reservation) {
+          if (reservation['category'] == null) return false;
+
+          final reservationCategory = reservation['category'];
+          if (reservationCategory is Map<String, dynamic>) {
+            final reservationCategoryId = reservationCategory['_id']?.toString();
+            final targetCategoryId = widget.category['_id']?.toString();
+            return reservationCategoryId == targetCategoryId;
+          }
+          return false;
+        }).toList();
 
         return ListView.builder(
           itemCount: reservations.length,
           itemBuilder: (context, index) {
             final reservation = reservations[index];
-            final specificDate = DateTime.parse(reservation['specificDate']);
+
+            // 안전한 데이터 접근
+            final specificDateStr = reservation['specificDate']?.toString();
+            if (specificDateStr == null) return const SizedBox.shrink();
+
+            final specificDate = DateTime.tryParse(specificDateStr);
+            if (specificDate == null) return const SizedBox.shrink();
+
             final reservedBy = reservation['reservedBy'];
+            if (reservedBy == null) return const SizedBox.shrink();
+
+            final nickname = reservedBy['nickname']?.toString() ?? '알 수 없음';
 
             return Card(
               child: ListTile(
                 title: Text(
-                  "${DateFormat('yyyy-MM-dd HH:mm').format(specificDate)} - ${reservedBy['nickname']}",
+                  "${DateFormat('yyyy-MM-dd HH:mm').format(specificDate)} - $nickname",
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
@@ -166,11 +183,18 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   Widget _buildRegularReservationSchedule() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        final reservations = appState.reservationSchedules
-            .where((reservation) =>
-        reservation['category'] != null &&
-            reservation['category']['_id'] == widget.category['_id'])
-            .toList();
+        // 안전한 필터링
+        final reservations = appState.reservationSchedules.where((reservation) {
+          if (reservation['category'] == null) return false;
+
+          final reservationCategory = reservation['category'];
+          if (reservationCategory is Map<String, dynamic>) {
+            final reservationCategoryId = reservationCategory['_id']?.toString();
+            final targetCategoryId = widget.category['_id']?.toString();
+            return reservationCategoryId == targetCategoryId;
+          }
+          return false;
+        }).toList();
 
         return Column(
           children: [
@@ -205,10 +229,44 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                                 textAlign: TextAlign.center),
                           ),
                           ...List.generate(7, (dayIndex) {
-                            final matching = reservations.where((r) =>
-                            r['dayOfWeek'] == dayIndex &&
-                                r['startHour'] <= hour &&
-                                r['endHour'] > hour);
+                            // 안전한 필터링
+                            final matching = reservations.where((r) {
+                              final dayOfWeek = r['dayOfWeek'];
+                              final startHour = r['startHour'];
+                              final endHour = r['endHour'];
+
+                              // null 체크 및 타입 변환
+                              if (dayOfWeek == null || startHour == null || endHour == null) {
+                                return false;
+                              }
+
+                              int? dayOfWeekInt;
+                              int? startHourInt;
+                              int? endHourInt;
+
+                              // 안전한 int 변환
+                              if (dayOfWeek is int) {
+                                dayOfWeekInt = dayOfWeek;
+                              } else if (dayOfWeek is String) {
+                                dayOfWeekInt = int.tryParse(dayOfWeek);
+                              }
+
+                              if (startHour is int) {
+                                startHourInt = startHour;
+                              } else if (startHour is String) {
+                                startHourInt = int.tryParse(startHour);
+                              }
+
+                              if (endHour is int) {
+                                endHourInt = endHour;
+                              } else if (endHour is String) {
+                                endHourInt = int.tryParse(endHour);
+                              }
+
+                              return dayOfWeekInt == dayIndex &&
+                                  startHourInt != null && startHourInt <= hour &&
+                                  endHourInt != null && endHourInt > hour;
+                            }).toList();
 
                             return Expanded(
                               child: GestureDetector(
@@ -227,7 +285,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                                   child: matching.isNotEmpty
                                       ? Center(
                                     child: Text(
-                                      matching.first['reservedBy']['nickname'],
+                                      matching.first['reservedBy']?['nickname']?.toString() ?? '',
                                       style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -253,6 +311,12 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   }
 
   void _showReservationDialog(Map<String, dynamic> reservation) {
+    final reservedBy = reservation['reservedBy'];
+    final nickname = reservedBy?['nickname']?.toString() ?? '알 수 없음';
+    final startHour = reservation['startHour']?.toString() ?? '0';
+    final endHour = reservation['endHour']?.toString() ?? '0';
+    final isRecurring = reservation['isRecurring'] ?? false;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -261,10 +325,9 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('예약자: ${reservation['reservedBy']['nickname']}'),
-            Text('시간: ${reservation['startHour']}:00 ~ ${reservation['endHour']}:00'),
-            if (reservation['isRecurring'] != null)
-              Text('반복: ${reservation['isRecurring'] ? "매주" : "일회성"}'),
+            Text('예약자: $nickname'),
+            Text('시간: $startHour:00 ~ $endHour:00'),
+            Text('반복: ${isRecurring ? "매주" : "일회성"}'),
           ],
         ),
         actions: [
@@ -445,7 +508,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFFA2E55),
+                          backgroundColor: Colors.pinkAccent,
                           foregroundColor: Colors.white,
                         ),
                         onPressed: appState.isLoading ? null : _addReservation,

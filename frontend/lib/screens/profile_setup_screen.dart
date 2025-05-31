@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
 import 'go_room_screen.dart';
+import 'home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -47,9 +48,44 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       setState(() {
         _nicknameController.text = appState.currentUser?.nickname ?? '울퉁불퉁 토마토';
       });
+
+      // 이미 프로필이 설정되어 있고 방도 있다면 홈으로 이동
+      if (appState.currentUser!.isProfileSet && appState.currentRoom != null) {
+        _navigateToHome(appState);
+        return;
+      }
+
+      // 프로필은 설정되어 있지만 방이 없다면 방 생성/참여 화면으로
+      if (appState.currentUser!.isProfileSet && appState.currentRoom == null) {
+        _navigateToGoRoom();
+        return;
+      }
     }
 
     _isInitialized = true;
+  }
+
+  void _navigateToGoRoom() {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const GoRoomScreen()),
+      );
+    }
+  }
+
+  void _navigateToHome(AppState appState) {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            roomName: appState.currentRoom!.roomName,
+            userName: appState.currentUser!.nickname,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _completeProfile() async {
@@ -66,10 +102,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       await appState.setProfile(nickname: nickname);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const GoRoomScreen()),
-      );
+      // 프로필 설정 후 방 상태 확인
+      if (appState.currentRoom != null) {
+        // 방이 있으면 홈으로
+        _navigateToHome(appState);
+      } else {
+        // 방이 없으면 방 생성/참여 화면으로
+        _navigateToGoRoom();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('프로필 설정 실패: $e')),

@@ -1,15 +1,8 @@
-// lib/screens/home_screen.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
-import 'package:frontend/screens/bathroom_reserve_screen.dart';
-import 'package:frontend/screens/washer_reserve.dart';
-import 'package:frontend/screens/dish_washing.dart';
-import 'package:frontend/screens/trash_screen.dart';
-import 'package:frontend/screens/visit_reserve_screen.dart';
-import 'cleaning_duty_screen.dart';
 import 'dynamic_chore_screen.dart'; // 추가
 import 'dynamic_reservation_screen.dart'; // 추가
 import 'package:frontend/settings/setting_home.dart';
@@ -47,89 +40,82 @@ class _HomeScreenState extends State<HomeScreen> {
     await appState.loadReservationCategories();
   }
 
-  // 기본 작업 아이템 빌드 (기존 화면 사용)
-  Widget _buildTaskItem(IconData icon, String label) {
+  // 카테고리별 아이콘 매핑
+  IconData getCategoryIcon(String categoryName) {
+    final iconMap = {
+      // 집안일 아이콘
+      '청소': Icons.cleaning_services,
+      '분리수거': Icons.delete_outline,
+      '설거지': Icons.local_dining,
+
+      // 예약 아이콘
+      '욕실': Icons.bathtub,
+      '세탁기': Icons.local_laundry_service,
+      '방문객': Icons.emoji_people,
+    };
+
+    return iconMap[categoryName] ?? Icons.category;
+  }
+
+  // 카테고리별 화면 이동 처리
+  void _navigateToScreen(Map<String, dynamic> category, bool isChore) {
+    final categoryName = category['name'];
+
+    if (isChore) {
+      // 집안일 화면 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DynamicChoreScreen(category: category),
+        ),
+      );
+    } else {
+      // 예약 화면 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DynamicReservationScreen(category: category),
+        ),
+      );
+    }
+  }
+
+  // 동적 카테고리 아이템 빌드
+  Widget _buildCategoryItem(Map<String, dynamic> category, bool isChore) {
+    final categoryName = category['name'];
+    final categoryIcon = category['icon'];
+    final isDefault = category['type'] == 'default';
+
     return GestureDetector(
-      onTap: () {
-        if (label == '청소') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const CleaningDutyScreen()));
-        } else if (label == '분리수거') {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const trashscreen()));
-        } else if (label == '설거지') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const dishwashing()));
-        } else if (label == '욕실') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const BathScheduleScreen()));
-        } else if (label == '방문객') {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const VisitReserve()));
-        } else if (label == '세탁기') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const WasherReserveScreen()));
-        }
-      },
+      onTap: () => _navigateToScreen(category, isChore),
+      onLongPress: isDefault ? null : () => _confirmDeleteCategory(isChore, category),
       child: Column(
         children: [
-          Icon(icon, size: 32, color: Colors.black54),
-          const SizedBox(height: 4),
-          Text(label),
+          // 이모지 아이콘이 있으면 사용, 없으면 기본 아이콘 사용
+          categoryIcon.isNotEmpty
+              ? Text(categoryIcon, style: const TextStyle(fontSize: 32))
+              : Icon(getCategoryIcon(categoryName), size: 35, color: Colors.black54),
+          const SizedBox(height: 10),
+          Text(categoryName),
         ],
       ),
     );
   }
 
-  // 사용자 정의 카테고리 빌드 (동적 화면 사용)
-  List<Widget> _buildUserTasks(bool isChore) {
-    return [
-      Consumer<AppState>(
-        builder: (context, appState, child) {
-          final categories = isChore
-              ? appState.choreCategories.where((cat) => cat['type'] == 'custom').toList()
-              : appState.reservationCategories.where((cat) => cat['type'] == 'custom').toList();
+  // 카테고리 목록 동적 생성
+  List<Widget> _buildCategoryItems(bool isChore) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final categories = isChore
+        ? appState.choreCategories
+        : appState.reservationCategories;
 
-          return Wrap(
-            spacing: 40,
-            runSpacing: 24,
-            children: categories.map((category) {
-              return GestureDetector(
-                onTap: () {
-                  // 동적 화면으로 이동
-                  if (isChore) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DynamicChoreScreen(category: category),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DynamicReservationScreen(category: category),
-                      ),
-                    );
-                  }
-                },
-                onLongPress: () => _confirmDeleteCategory(isChore, category),
-                child: Column(
-                  children: [
-                    Text(category['icon'], style: const TextStyle(fontSize: 32)),
-                    const SizedBox(height: 4),
-                    Text(category['name']),
-                  ],
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
-    ];
+    // 기본 카테고리와 사용자 정의 카테고리를 모두 포함
+    return categories.map<Widget>((category) {
+      return _buildCategoryItem(category, isChore);
+    }).toList();
   }
 
-  // 초대코드 생성 - 백엔드와 연동
+  // 초대코드 생성
   Future<void> _showInviteCodeDialog() async {
     final appState = Provider.of<AppState>(context, listen: false);
 
@@ -169,9 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 카테고리 추가 다이얼로그 (백엔드 연동)
+  // 카테고리 추가 다이얼로그
   void _showAddCategoryDialog(bool isChore) {
-    String selectedIcon = '⭐'; // 이모지로 변경
+    String selectedIcon = '⭐';
     TextEditingController nameController = TextEditingController();
 
     showDialog(
@@ -205,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: selectedIcon == icon ? Colors.blue : Colors.grey,
+                            color: selectedIcon == icon ? Colors.pinkAccent : Colors.grey,
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -261,8 +247,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 카테고리 삭제 확인 (백엔드 연동)
+  // 카테고리 삭제 확인 (기본 카테고리는 삭제 불가)
   void _confirmDeleteCategory(bool isChore, Map<String, dynamic> category) {
+    if (category['type'] == 'default') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('기본 카테고리는 삭제할 수 없습니다.')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -302,6 +295,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 추가 버튼
+  Widget _buildAddTaskButton(bool isChore) {
+    return GestureDetector(
+      onTap: () => _showAddCategoryDialog(isChore),
+      child: Column(
+        children: const [
+          Icon(Icons.add, size: 35, color: Colors.black54),
+          SizedBox(height: 10),
+          Text('추가'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,72 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.black),
             onPressed: () {
-              showGeneralDialog(
-                context: context,
-                barrierLabel: "알림",
-                barrierDismissible: true,
-                barrierColor: Colors.black.withOpacity(0.5),
-                transitionDuration: const Duration(milliseconds: 300),
-                pageBuilder: (context, anim1, anim2) {
-                  return const SizedBox();
-                },
-                transitionBuilder: (context, anim1, anim2, child) {
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(1, 0),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: anim1,
-                      curve: Curves.easeOut,
-                    )),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        width: MediaQuery.of(context).size.width * 0.8,
-                        height: MediaQuery.of(context).size.height,
-                        color: Colors.white,
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    "알림",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Divider(),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  "알림이 없습니다.",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
+              // 알림 처리
             },
           )
         ],
@@ -403,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildToggleButton('집안일', isChoreSelected, () {
                   setState(() => isChoreSelected = true);
                 }),
-                const SizedBox(width: 16),
+                const SizedBox(width: 30),
                 _buildToggleButton('예약', !isChoreSelected, () {
                   setState(() => isChoreSelected = false);
                 }),
@@ -415,9 +357,19 @@ class _HomeScreenState extends State<HomeScreen> {
               runSpacing: 24,
               alignment: WrapAlignment.center,
               children: [
-                ..._buildDefaultTasks(isChoreSelected),
-                ..._buildUserTasks(isChoreSelected),
-                _buildAddTaskButton(isChoreSelected),
+                // Consumer를 사용하여 상태 변화 감지
+                Consumer<AppState>(
+                  builder: (context, appState, child) {
+                    return Wrap(
+                      spacing: 40,
+                      runSpacing: 24,
+                      children: [
+                        ..._buildCategoryItems(isChoreSelected),
+                        _buildAddTaskButton(isChoreSelected),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -468,35 +420,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
-
-  List<Widget> _buildDefaultTasks(bool isChore) {
-    if (isChore) {
-      return [
-        _buildTaskItem(Icons.cleaning_services, '청소'),
-        _buildTaskItem(Icons.delete_outline, '분리수거'),
-        _buildTaskItem(Icons.local_dining, '설거지'),
-      ];
-    } else {
-      return [
-        _buildTaskItem(Icons.bathtub, '욕실'),
-        _buildTaskItem(Icons.local_laundry_service, '세탁기'),
-        _buildTaskItem(Icons.emoji_people, '방문객'),
-      ];
-    }
-  }
-
-  Widget _buildAddTaskButton(bool isChore) {
-    return GestureDetector(
-      onTap: () => _showAddCategoryDialog(isChore),
-      child: Column(
-        children: const [
-          Icon(Icons.add, size: 32, color: Colors.black54),
-          SizedBox(height: 4),
-          Text('추가'),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBottomNavBar(BuildContext context) => BottomNavigationBar(
     currentIndex: 2,

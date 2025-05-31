@@ -203,7 +203,7 @@ class _TrashScreenState extends State<trashscreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: Colors.pinkAccent,
                     ),
                     onPressed: appState.isLoading ? null : _addDuty,
                     child: appState.isLoading

@@ -39,15 +39,19 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         address: _addressController.text.trim(),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(
-            roomName: roomName,
-            userName: appState.currentUser?.nickname ?? '사용자',
+      // 방 생성 성공 시 홈 화면으로 이동
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(
+              roomName: roomName,
+              userName: appState.currentUser?.nickname ?? '사용자',
+            ),
           ),
-        ),
-      );
+              (route) => false, // 모든 이전 화면 제거
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('방 생성 실패: $e')),

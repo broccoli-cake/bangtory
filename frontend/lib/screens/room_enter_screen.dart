@@ -34,15 +34,19 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
     try {
       await appState.joinRoom(inviteCode);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(
-            roomName: appState.currentRoom?.roomName ?? '방',
-            userName: appState.currentUser?.nickname ?? '사용자',
+      // 방 참여 성공 시 홈 화면으로 이동
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(
+              roomName: appState.currentRoom?.roomName ?? '방',
+              userName: appState.currentUser?.nickname ?? '사용자',
+            ),
           ),
-        ),
-      );
+              (route) => false, // 모든 이전 화면 제거
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('방 참여 실패: $e')),

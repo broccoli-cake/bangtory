@@ -99,12 +99,20 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
       appBar: AppBar(title: Text('${widget.category['name']} 당번')),
       body: Consumer<AppState>(
         builder: (context, appState, child) {
-          // 해당 카테고리 일정만 필터링
-          final categorySchedules = appState.choreSchedules
-              .where((schedule) =>
-          schedule['category'] != null &&
-              schedule['category']['_id'] == widget.category['_id'])
-              .toList();
+          // 해당 카테고리 일정만 필터링 - 안전한 비교
+          final categorySchedules = appState.choreSchedules.where((schedule) {
+            // null 체크 먼저 수행
+            if (schedule['category'] == null) return false;
+
+            // 카테고리 ID 비교 - 둘 다 String으로 변환하여 비교
+            final scheduleCategory = schedule['category'];
+            if (scheduleCategory is Map<String, dynamic>) {
+              final scheduleCategoryId = scheduleCategory['_id']?.toString();
+              final targetCategoryId = widget.category['_id']?.toString();
+              return scheduleCategoryId == targetCategoryId;
+            }
+            return false;
+          }).toList();
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -116,14 +124,24 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                     itemCount: categorySchedules.length,
                     itemBuilder: (context, index) {
                       final schedule = categorySchedules[index];
-                      final date = DateTime.parse(schedule['date']);
+
+                      // 안전한 데이터 접근
+                      final dateStr = schedule['date']?.toString();
+                      if (dateStr == null) return const SizedBox.shrink();
+
+                      final date = DateTime.tryParse(dateStr);
+                      if (date == null) return const SizedBox.shrink();
+
                       final assignedPerson = schedule['assignedTo'];
+                      if (assignedPerson == null) return const SizedBox.shrink();
+
                       final isCompleted = schedule['isCompleted'] ?? false;
+                      final nickname = assignedPerson['nickname'] ?? '알 수 없음';
 
                       return Card(
                         child: ListTile(
                           title: Text(
-                            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} - ${assignedPerson['nickname']}",
+                            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} - $nickname",
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -177,15 +195,18 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                 Wrap(
                   spacing: 8.0,
                   children: appState.roomMembers.map((member) {
-                    final isSelected = selectedPersonId == member['userId'];
+                    final userId = member['userId']?.toString();
+                    final nickname = member['nickname']?.toString() ?? '알 수 없음';
+                    final isSelected = selectedPersonId == userId;
+
                     return ChoiceChip(
-                      label: Text(member['nickname']),
+                      label: Text(nickname),
                       selected: isSelected,
-                      onSelected: (_) {
+                      onSelected: userId != null ? (_) {
                         setState(() {
-                          selectedPersonId = member['userId'];
+                          selectedPersonId = userId;
                         });
-                      },
+                      } : null,
                     );
                   }).toList(),
                 ),
@@ -196,7 +217,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: Colors.pinkAccent,
                     ),
                     onPressed: appState.isLoading ? null : _addDuty,
                     child: appState.isLoading
