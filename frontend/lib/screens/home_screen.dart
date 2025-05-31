@@ -434,18 +434,28 @@ class _HomeScreenState extends State<HomeScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
     ],
     onTap: (index) {
-      if (index == 4) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const SettingsScreen()));
-      } else if (index == 0) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const CalendarScreen()));
+      if (index == 0) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CalendarScreen()),
+        );
+      } else if (index == 1) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FullScheduleScreen()),
+        );
+      } else if (index == 2) {
+        // 현재 홈 화면이므로 아무것도 하지 않음
       } else if (index == 3) {
         Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const ChatRoomScreen()));
-      } else if (index == 1) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const FullScheduleScreen()));
+          context,
+          MaterialPageRoute(builder: (_) => const ChatRoomScreen()),
+        );
+      } else if (index == 4) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+        );
       }
     },
   );
