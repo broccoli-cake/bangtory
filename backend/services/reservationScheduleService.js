@@ -53,27 +53,41 @@ const reservationScheduleService = {
     },
 
     /**
-     * 특정 카테고리의 현재 주 예약만 조회 (새로 추가)
-     */
-    async getCategoryWeeklySchedules(roomId, categoryId) {
-      const today = new Date();
-      const weekStartDate = ReservationSchedule.getWeekStartDate(today);
+       * 특정 카테고리의 현재 주 예약만 조회 (새로 추가)
+       */
+      async getCategoryWeeklySchedules(roomId, categoryId) {
+        try {
+          console.log('getCategoryWeeklySchedules 호출:', { roomId, categoryId });
 
-      const query = {
-        room: roomId,
-        category: categoryId,
-        weekStartDate: weekStartDate,
-        status: 'approved',
-        specificDate: { $exists: false }
-      };
+          const today = new Date();
+          const weekStartDate = ReservationSchedule.getWeekStartDate(today);
 
-      const schedules = await ReservationSchedule.find(query)
-        .populate('category', 'name icon isVisitor')
-        .populate('reservedBy', 'nickname profileImageUrl')
-        .sort({ dayOfWeek: 1, startHour: 1 });
+          console.log('현재 주 시작일:', weekStartDate);
 
-      return schedules;
-    },
+          const query = {
+            room: roomId,
+            category: categoryId,
+            weekStartDate: weekStartDate,
+            status: 'approved',
+            specificDate: { $exists: false }
+          };
+
+          console.log('검색 쿼리:', query);
+
+          const schedules = await ReservationSchedule.find(query)
+            .populate('category', 'name icon isVisitor')
+            .populate('reservedBy', 'nickname profileImageUrl')
+            .sort({ dayOfWeek: 1, startHour: 1 });
+
+          console.log('조회된 스케줄 수:', schedules.length);
+          console.log('조회된 스케줄:', schedules);
+
+          return schedules;
+        } catch (error) {
+          console.error('getCategoryWeeklySchedules 오류:', error);
+          throw error;
+        }
+      },
 
   /**
    * 방문객 예약 조회 (모든 상태 포함)

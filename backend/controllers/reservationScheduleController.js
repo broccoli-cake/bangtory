@@ -42,19 +42,27 @@ const reservationScheduleController = {
     }
   },
 
+  /**
+   * 특정 카테고리의 주간 예약 일정 조회 (새로 추가)
+   */
   async getCategoryWeeklySchedules(req, res, next) {
-      try {
-        const { roomId, categoryId } = req.params;
+    try {
+      const { roomId, categoryId } = req.params;
 
-        const schedules = await reservationScheduleService.getCategoryWeeklySchedules(
-          roomId,
-          categoryId
-        );
+      console.log('카테고리별 일정 조회 요청:', { roomId, categoryId });
 
-        res.json(successResponse(schedules, '카테고리별 주간 예약 일정을 조회했습니다.'));
-      } catch (error) {
-        next(error);
-      }
+      const schedules = await reservationScheduleService.getCategoryWeeklySchedules(
+        roomId,
+        categoryId
+      );
+
+      console.log('조회된 일정:', schedules);
+
+      res.json(successResponse(schedules, '카테고리별 주간 예약 일정을 조회했습니다.'));
+    } catch (error) {
+      console.error('카테고리별 일정 조회 오류:', error);
+      next(error);
+    }
   },
 
   /**
@@ -94,14 +102,13 @@ const reservationScheduleController = {
   },
 
   /**
-   * 예약 일정 생성 - 함수명 수정
+   * 예약 일정 생성
    */
   async createSchedule(req, res, next) {
     try {
       const scheduleData = req.body;
       const userId = req.user.id;
 
-      // createSchedule 대신 올바른 함수명 사용
       const schedule = await reservationScheduleService.createSchedule(scheduleData, userId);
 
       res.status(201).json(successResponse(schedule, '예약이 생성되었습니다.'));
