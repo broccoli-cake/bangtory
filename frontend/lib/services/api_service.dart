@@ -378,6 +378,8 @@ class ApiService {
     required DateTime date,
   }) async {
     try {
+      final adjustedDate = DateTime(date.year, date.month, date.day, 12, 0, 0);
+
       final response = await http.post(
         Uri.parse('$baseUrl/chores/schedules'),
         headers: _headers,
@@ -385,7 +387,7 @@ class ApiService {
           'room': roomId,
           'category': categoryId,
           'assignedTo': assignedTo,
-          'date': date.toIso8601String(),
+          'date': adjustedDate.toIso8601String(),
         }),
       );
 
@@ -453,8 +455,20 @@ class ApiService {
       };
 
       if (specificDate != null) {
-        body['specificDate'] = specificDate.toIso8601String();
+        // 방문객 예약: 날짜 부분만 추출해서 정오(12:00)로 설정
+        // 이렇게 하면 시간대 변환되어도 같은 날짜가 유지됨
+        final dateOnly = DateTime(
+          specificDate.year,
+          specificDate.month,
+          specificDate.day,
+          12, // 정오로 설정 (집안일과 동일한 방식)
+          0,
+          0,
+        );
+
+        body['specificDate'] = dateOnly.toIso8601String();
       } else if (dayOfWeek != null) {
+        // 일반 예약: 요일 기반
         body['dayOfWeek'] = dayOfWeek;
         body['isRecurring'] = isRecurring;
       }

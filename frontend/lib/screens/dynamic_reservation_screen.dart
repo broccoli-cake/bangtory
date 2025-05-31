@@ -78,19 +78,17 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
 
     try {
       if (isVisitorCategory) {
-        // 방문객 예약
-        final reservationDateTime = DateTime(
+        // 방문객 예약 - 날짜와 시간을 정확히 조합
+        final reservationDate = DateTime(
           selectedDate.year,
           selectedDate.month,
           selectedDate.day,
-          selectedTime.hour,
-          selectedTime.minute,
         );
 
         await appState.createReservationSchedule(
           categoryId: widget.category['_id'],
-          specificDate: reservationDateTime,
-          startHour: selectedTime.hour,
+          specificDate: reservationDate, // 날짜만 전달
+          startHour: selectedTime.hour,  // 시간은 별도로 전달
           endHour: selectedTime.hour + 1,
         );
       } else {
