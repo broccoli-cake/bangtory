@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../utils/app_state.dart';
 
 class WasherReserveScreen extends StatefulWidget {
   const WasherReserveScreen({super.key});
@@ -9,15 +11,34 @@ class WasherReserveScreen extends StatefulWidget {
 
 class _WasherReserveScreenState extends State<WasherReserveScreen> {
   final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
-  final List<String> members = ['김민영', '홍수한', '민수연', '최현정'];
 
   String selectedDay = '월';
   TimeOfDay? startTime;
   TimeOfDay? endTime;
   bool repeatWeekly = false;
-  String? selectedPerson;
+  String? washerCategoryId;
 
-  List<Map<String, dynamic>> reservations = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    await appState.loadReservationSchedules();
+
+    // 세탁기 카테고리 찾기
+    final categories = appState.reservationCategories;
+    final washerCategory = categories.firstWhere(
+          (cat) => cat['name'] == '세탁기',
+      orElse: () => categories.isNotEmpty ? categories.first : {},
+    );
+
+    if (washerCategory.isNotEmpty) {
+      washerCategoryId = washerCategory['_id'];
+    }
+  }
 
   void _selectTime(bool isStart) async {
     TimeOfDay? picked = await showTimePicker(
@@ -35,21 +56,39 @@ class _WasherReserveScreenState extends State<WasherReserveScreen> {
     }
   }
 
-  void _addReservation() {
-    if (startTime != null && endTime != null && selectedPerson != null) {
-      reservations.add({
-        'day': selectedDay,
-        'start': startTime!,
-        'end': endTime!,
-        'person': selectedPerson!,
-        'repeat': repeatWeekly,
-      });
+  Future<void> _addReservation() async {
+    if (startTime == null || endTime == null || washerCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시간을 모두 선택해주세요.')),
+      );
+      return;
+    }
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final dayOfWeek = days.indexOf(selectedDay);
+
+    try {
+      await appState.createReservationSchedule(
+        categoryId: washerCategoryId!,
+        dayOfWeek: dayOfWeek,
+        startHour: startTime!.hour,
+        endHour: endTime!.hour,
+        isRecurring: repeatWeekly,
+      );
+
       setState(() {
         startTime = null;
         endTime = null;
-        selectedPerson = null;
         repeatWeekly = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('세탁기 예약이 등록되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('예약 등록 실패: $e')),
+      );
     }
   }
 
@@ -62,10 +101,8 @@ class _WasherReserveScreenState extends State<WasherReserveScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('예약자: ${reservation['person']}'),
-            Text(
-              '시간: ${reservation['start'].format(context)} ~ ${reservation['end'].format(context)}',
-            ),
+            Text('예약자: ${reservation['reservedBy']['nickname']}'),
+            Text('시간: ${reservation['startHour']}:00 ~ ${reservation['endHour']}:00'),
           ],
         ),
         actions: [
@@ -74,11 +111,20 @@ class _WasherReserveScreenState extends State<WasherReserveScreen> {
             child: const Text('취소'),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                reservations.remove(reservation);
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              final appState = Provider.of<AppState>(context, listen: false);
+              try {
+                await appState.deleteReservationSchedule(reservation['_id']);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('예약이 삭제되었습니다.')),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('삭제 실패: $e')),
+                );
+              }
             },
             child: const Text('삭제', style: TextStyle(color: Color(0xFFFA2E55))),
           ),
@@ -88,83 +134,95 @@ class _WasherReserveScreenState extends State<WasherReserveScreen> {
   }
 
   Widget _buildSchedule() {
-    return Column(
-      children: [
-        Row(
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+        // 세탁기 예약만 필터링
+        final washerReservations = appState.reservationSchedules
+            .where((reservation) =>
+        reservation['category'] != null &&
+            reservation['category']['name'] == '세탁기')
+            .toList();
+
+        return Column(
           children: [
-            const SizedBox(width: 30),
-            ...days.map(
-                  (d) => Expanded(
-                child: Center(
-                  child: Text(
-                    d,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const SizedBox(width: 30),
+                ...days.map(
+                      (d) => Expanded(
+                    child: Center(
+                      child: Text(
+                        d,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 ),
+              ],
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                itemCount: 24,
+                itemBuilder: (_, hour) {
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 30,
+                            child: Text(
+                              '$hour',
+                              style: const TextStyle(fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          ...List.generate(7, (dayIndex) {
+                            final day = days[dayIndex];
+                            final matching = washerReservations.where((r) =>
+                            r['dayOfWeek'] == dayIndex &&
+                                r['startHour'] <= hour &&
+                                r['endHour'] > hour);
+
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: matching.isNotEmpty
+                                    ? () => _showReservationDialog(matching.first)
+                                    : null,
+                                child: Container(
+                                  height: 60,
+                                  margin: const EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                    color: matching.isNotEmpty
+                                        ? Colors.blueAccent.withOpacity(0.5)
+                                        : Colors.grey[100],
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: matching.isNotEmpty
+                                      ? Center(
+                                    child: Text(
+                                      matching.first['reservedBy']['nickname'],
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10),
+                                    ),
+                                  )
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 24,
-            itemBuilder: (_, hour) {
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 30,
-                        child: Text(
-                          '$hour',
-                          style: const TextStyle(fontSize: 12),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      ...List.generate(7, (dayIndex) {
-                        final day = days[dayIndex];
-                        final matching = reservations.where((r) =>
-                        r['day'] == day &&
-                            r['start'].hour <= hour &&
-                            r['end'].hour > hour);
-
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: matching.isNotEmpty
-                                ? () => _showReservationDialog(matching.first)
-                                : null,
-                            child: Container(
-                              height: 60,
-                              margin: const EdgeInsets.all(1),
-                              decoration: BoxDecoration(
-                                color: matching.isNotEmpty
-                                    ? Colors.redAccent.withOpacity(0.5)
-                                    : Colors.grey[100],
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: matching.isNotEmpty
-                                  ? Center(
-                                child: Text(
-                                  matching.first['person'],
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              )
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -172,125 +230,114 @@ class _WasherReserveScreenState extends State<WasherReserveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("세탁기 예약")),
-      body: Column(
-        children: [
-          Expanded(child: _buildSchedule()),
-          const Divider(height: 1),
-          Container(
-            color: Colors.grey.shade100,
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 요일 선택
-                Row(
+      body: Consumer<AppState>(
+        builder: (context, appState, child) {
+          return Column(
+            children: [
+              Expanded(child: _buildSchedule()),
+              const Divider(height: 1),
+              Container(
+                color: Colors.grey.shade100,
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("요일: "),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        String? result = await showModalBottomSheet<String>(
-                          context: context,
-                          builder: (_) => ListView(
-                            shrinkWrap: true,
-                            children: days
-                                .map((d) => ListTile(
-                              title: Text(d),
-                              onTap: () => Navigator.pop(context, d),
-                            ))
-                                .toList(),
+                    // 요일 선택
+                    Row(
+                      children: [
+                        const Text("요일: "),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            String? result = await showModalBottomSheet<String>(
+                              context: context,
+                              builder: (_) => ListView(
+                                shrinkWrap: true,
+                                children: days
+                                    .map((d) => ListTile(
+                                  title: Text(d),
+                                  onTap: () => Navigator.pop(context, d),
+                                ))
+                                    .toList(),
+                              ),
+                            );
+                            if (result != null) {
+                              setState(() {
+                                selectedDay = result;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Color(0xFFFA2E55)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(selectedDay),
                           ),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            selectedDay = result;
-                          });
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Color(0xFFFA2E55)),
-                          borderRadius: BorderRadius.circular(8),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // 시간 선택
+                    Row(
+                      children: [
+                        const Text("시간: "),
+                        TextButton(
+                          onPressed: () => _selectTime(true),
+                          child: Text(startTime == null
+                              ? "--:--"
+                              : startTime!.format(context)),
                         ),
-                        child: Text(selectedDay),
+                        const Text(" ~ "),
+                        TextButton(
+                          onPressed: () => _selectTime(false),
+                          child: Text(endTime == null
+                              ? "--:--"
+                              : endTime!.format(context)),
+                        ),
+                      ],
+                    ),
+
+                    // 반복 버튼
+                    Row(
+                      children: [
+                        const Text("매주 반복: "),
+                        Switch(
+                          value: repeatWeekly,
+                          onChanged: (val) {
+                            setState(() {
+                              repeatWeekly = val;
+                            });
+                          },
+                          activeColor: Color(0xFFFA2E55),
+                        )
+                      ],
+                    ),
+
+                    // 등록 버튼
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFFA2E55),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: appState.isLoading ? null : _addReservation,
+                        child: appState.isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text("등록하기"),
                       ),
                     )
                   ],
                 ),
-                const SizedBox(height: 8),
-
-                // 시간 선택
-                Row(
-                  children: [
-                    const Text("시간: "),
-                    TextButton(
-                      onPressed: () => _selectTime(true),
-                      child: Text(startTime == null
-                          ? "--:--"
-                          : startTime!.format(context)),
-                    ),
-                    const Text(" ~ "),
-                    TextButton(
-                      onPressed: () => _selectTime(false),
-                      child: Text(endTime == null
-                          ? "--:--"
-                          : endTime!.format(context)),
-                    ),
-                  ],
-                ),
-
-                // 반복 버튼
-                Row(
-                  children: [
-                    const Text("매주 반복: "),
-                    Switch(
-                      value: repeatWeekly,
-                      onChanged: (val) {
-                        setState(() {
-                          repeatWeekly = val;
-                        });
-                      },
-                      activeColor: Color(0xFFFA2E55),
-                    )
-                  ],
-                ),
-
-                // 이름 선택
-                Wrap(
-                  spacing: 8.0,
-                  children: members.map((name) {
-                    final isSelected = selectedPerson == name;
-                    return ChoiceChip(
-                      label: Text(name),
-                      selected: isSelected,
-                      onSelected: (_) {
-                        setState(() {
-                          selectedPerson = name;
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-
-                // 등록 버튼
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFFA2E55),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: _addReservation,
-                    child: const Text("등록하기"),
-                  ),
-                )
-              ],
-            ),
-          )
-        ],
+              )
+            ],
+          );
+        },
       ),
     );
   }

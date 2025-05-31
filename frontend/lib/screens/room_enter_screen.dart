@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../utils/app_state.dart';
 import 'home_screen.dart';
 
 class RoomEnterScreen extends StatefulWidget {
@@ -17,83 +19,103 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
     super.dispose();
   }
 
+  Future<void> _joinRoom() async {
+    final inviteCode = _inviteCodeController.text.trim();
+
+    if (inviteCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('초대 코드를 입력해주세요')),
+      );
+      return;
+    }
+
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    try {
+      await appState.joinRoom(inviteCode);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            roomName: appState.currentRoom?.roomName ?? '방',
+            userName: appState.currentUser?.nickname ?? '사용자',
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('방 참여 실패: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                '방장에게 받은\n초대코드를 입력하세요.',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                '초대 코드',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _inviteCodeController,
-                decoration: InputDecoration(
-                  hintText: '예: ABC123',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+        child: Consumer<AppState>(
+          builder: (context, appState, child) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // 초대코드가 입력되어 있을 때만 이동하도록 간단 체크
-                    if (_inviteCodeController.text.trim().isNotEmpty) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HomeScreen(
-                            roomName: '우리 방',   // 여기에 실제 방 이름 넣어주세요
-                            userName: 'user1',    // user1 아이콘 표시용 이름
-                          ),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('초대 코드를 입력해주세요')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFA2E55),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 24),
+                  const Text(
+                    '방장에게 받은\n초대코드를 입력하세요.',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    '초대 코드',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _inviteCodeController,
+                    decoration: InputDecoration(
+                      hintText: '예: ABC123',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                   ),
-                  child: const Text(
-                    '방 입장하기',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: appState.isLoading ? null : _joinRoom,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFA2E55),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: appState.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                        '방 입장하기',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

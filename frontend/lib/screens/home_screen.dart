@@ -1,6 +1,9 @@
+// lib/screens/home_screen.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../utils/app_state.dart';
 import 'package:frontend/screens/bathroom_reserve_screen.dart';
 import 'package:frontend/screens/washer_reserve.dart';
 import 'package:frontend/screens/dish_washing.dart';
@@ -30,141 +33,184 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isChoreSelected = true;
   List<String> participants = [];
 
-  // 사용자 카테고리 추가/삭제 관련
-  List<Map<String, dynamic>> userChoreCategories = [];
-  List<Map<String, dynamic>> userReserveCategories = [];
-
-  String _generateInviteCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final rand = Random();
-    return List.generate(6, (index) => chars[rand.nextInt(chars.length)]).join();
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
   }
 
-  void _showInviteCodeDialog() {
-    final inviteCode = _generateInviteCode();
+  // 카테고리 로드
+  Future<void> _loadCategories() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    await appState.loadChoreCategories();
+    await appState.loadReservationCategories();
+  }
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('초대 코드'),
-        content: SelectableText(
-          inviteCode,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  // 초대코드 생성 - 백엔드와 연동
+  Future<void> _showInviteCodeDialog() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    try {
+      final inviteCode = await appState.generateInviteCode();
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('초대 코드'),
+          content: SelectableText(
+            inviteCode,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('닫기'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: inviteCode));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('초대 코드가 복사되었습니다')),
+                );
+              },
+              child: const Text('복사'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: inviteCode));
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('초대 코드가 복사되었습니다')),
-              );
-            },
-            child: const Text('복사'),
-          ),
-        ],
-      ),
-    );
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('초대 코드 생성 실패: $e')),
+      );
+    }
   }
 
+  // 카테고리 추가 다이얼로그 (백엔드 연동)
   void _showAddCategoryDialog(bool isChore) {
-    IconData selectedIcon = Icons.star;
+    String selectedIcon = '⭐'; // 이모지로 변경
     TextEditingController nameController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('카테고리 추가'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: '카테고리 이름'),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text('${isChore ? "집안일" : "예약"} 카테고리 추가'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: '카테고리 이름'),
+                ),
+                const SizedBox(height: 10),
+                const Text('아이콘 선택:'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    '⭐', '🏠', '💡', '🐾', '☕', '📶', '🔧', '📱', '🎮', '📚'
+                  ].map((icon) {
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedIcon = icon;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: selectedIcon == icon ? Colors.blue : Colors.grey,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(icon, style: const TextStyle(fontSize: 24)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            DropdownButton<IconData>(
-              value: selectedIcon,
-              items: const [
-                Icons.star,
-                Icons.home,
-                Icons.lightbulb,
-                Icons.pets,
-                Icons.local_cafe,
-                Icons.wifi,
-              ].map((icon) {
-                return DropdownMenuItem(
-                  value: icon,
-                  child: Icon(icon),
-                );
-              }).toList(),
-              onChanged: (icon) {
-                if (icon != null) {
-                  setState(() {
-                    selectedIcon = icon;
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameController.text.trim();
-              if (name.isNotEmpty) {
-                setState(() {
-                  if (isChore) {
-                    userChoreCategories.add({
-                      'icon': selectedIcon,
-                      'label': name,
-                    });
-                  } else {
-                    userReserveCategories.add({
-                      'icon': selectedIcon,
-                      'label': name,
-                    });
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isNotEmpty) {
+                    try {
+                      final appState = Provider.of<AppState>(context, listen: false);
+
+                      if (isChore) {
+                        await appState.createChoreCategory(
+                          name: name,
+                          icon: selectedIcon,
+                        );
+                      } else {
+                        await appState.createReservationCategory(
+                          name: name,
+                          icon: selectedIcon,
+                        );
+                      }
+
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$name 카테고리가 추가되었습니다.')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('카테고리 추가 실패: $e')),
+                      );
+                    }
                   }
-                });
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('추가'),
-          ),
-        ],
+                },
+                child: const Text('추가'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  void _confirmDeleteCategory(bool isChore, int index) {
+  // 카테고리 삭제 확인 (백엔드 연동)
+  void _confirmDeleteCategory(bool isChore, Map<String, dynamic> category) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('삭제 확인'),
-        content: const Text('해당 항목을 삭제하시겠습니까?'),
+        content: Text('${category['name']} 카테고리를 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('취소'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
+            onPressed: () async {
+              try {
+                final appState = Provider.of<AppState>(context, listen: false);
+
                 if (isChore) {
-                  userChoreCategories.removeAt(index);
+                  await appState.deleteChoreCategory(category['_id']);
                 } else {
-                  userReserveCategories.removeAt(index);
+                  await appState.deleteReservationCategory(category['_id']);
                 }
-              });
-              Navigator.pop(context);
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${category['name']} 카테고리가 삭제되었습니다.')),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('카테고리 삭제 실패: $e')),
+                );
+              }
             },
             child: const Text('삭제'),
           ),
@@ -316,7 +362,11 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
     title: Text(widget.userName,
         style: const TextStyle(fontWeight: FontWeight.bold)),
-    subtitle: const Text('방장'),
+    subtitle: Consumer<AppState>(
+      builder: (context, appState, child) {
+        return Text(appState.currentRoom?.isOwner == true ? '방장' : '멤버');
+      },
+    ),
     trailing: IconButton(
       icon: const Icon(Icons.share),
       onPressed: _showInviteCodeDialog,
@@ -352,21 +402,34 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 사용자 정의 카테고리 빌드 (백엔드 데이터 사용)
   List<Widget> _buildUserTasks(bool isChore) {
-    final categories = isChore ? userChoreCategories : userReserveCategories;
-    return List.generate(categories.length, (index) {
-      final item = categories[index];
-      return GestureDetector(
-        onLongPress: () => _confirmDeleteCategory(isChore, index),
-        child: Column(
-          children: [
-            Icon(item['icon'], size: 32, color: Colors.black54),
-            const SizedBox(height: 4),
-            Text(item['label']),
-          ],
-        ),
-      );
-    });
+    return [
+      Consumer<AppState>(
+        builder: (context, appState, child) {
+          final categories = isChore
+              ? appState.choreCategories.where((cat) => cat['type'] == 'custom').toList()
+              : appState.reservationCategories.where((cat) => cat['type'] == 'custom').toList();
+
+          return Wrap(
+            spacing: 40,
+            runSpacing: 24,
+            children: categories.map((category) {
+              return GestureDetector(
+                onLongPress: () => _confirmDeleteCategory(isChore, category),
+                child: Column(
+                  children: [
+                    Text(category['icon'], style: const TextStyle(fontSize: 32)),
+                    const SizedBox(height: 4),
+                    Text(category['name']),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    ];
   }
 
   Widget _buildAddTaskButton(bool isChore) {
