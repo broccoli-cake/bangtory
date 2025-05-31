@@ -1,5 +1,4 @@
 // backend/models/User.js
-
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -14,7 +13,7 @@ const userSchema = new mongoose.Schema({
   provider: {
     type: String,
     required: true,
-    enum: ['kakao', 'google', 'naver']
+    enum: ['kakao', 'google', 'naver', 'manual'] // manual 추가
   },
   providerId: {
     type: String,

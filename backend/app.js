@@ -2,13 +2,10 @@
 
 require('dotenv').config();
 require('./schedulers/reservationScheduler'); // 스케줄러 초기화
-const passport = require('./config/passport'); // OAuth 전략 등록된 파일 불러오기
 const express = require('express'); // express 모듈 불러오기
-const session = require('express-session'); // 세션 관리용 모듈
 const mongoose = require('mongoose');
 const cors = require('cors'); // CORS 추가
 const path = require('path');
-const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const profileRoutes = require('./routes/profileRoutes');
@@ -33,21 +30,6 @@ app.use(cors({
   credentials: true
 }));
 
-// 세션 설정
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24시간
-  }
-}));
-
-// Passport 설정 - 세션 설정 후에 초기화
-app.use(passport.initialize());
-app.use(passport.session());
-
 // views 디렉토리를 정적 파일로 제공
 app.use('/views', express.static(path.join(__dirname, 'views')));
 
@@ -57,7 +39,6 @@ app.get('/test', (req, res) => {
 });
 
 // API 라우트 설정
-app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/profiles', profileRoutes);
@@ -65,31 +46,21 @@ app.use('/chores', choreRoutes);
 app.use('/chores/schedules', choreScheduleRoutes);
 app.use('/reservations', reservationRoutes); // 예약 라우트 추가
 
-// 집안일 기본 카테고리 초기화
-choreService.initializeDefaultCategories()
+// 집안일 기본 카테고리 초기화 (기본 사용자 ID 사용)
+const DEFAULT_USER_ID = '000000000000000000000000'; // 기본 사용자 ID
+choreService.initializeDefaultCategories(DEFAULT_USER_ID)
   .then(() => console.log('집안일 기본 카테고리 초기화 완료'))
   .catch(err => console.error('집안일 기본 카테고리 초기화 실패:', err));
 
 // 예약 기본 카테고리 초기화
-reservationService.initializeDefaultCategories()
+reservationService.initializeDefaultCategories(DEFAULT_USER_ID)
   .then(() => console.log('예약 기본 카테고리 초기화 완료'))
   .catch(err => console.error('예약 기본 카테고리 초기화 실패:', err));
 
 // 기본 라우트
 app.get('/', (req, res) => {
   console.log('루트 경로 요청 받음');
-  if (req.isAuthenticated()) {
-    res.json({
-      message: '로그인 성공!',
-      user: {
-        id: req.user._id,
-        nickname: req.user.nickname,
-        profileImageUrl: req.user.profileImageUrl
-      }
-    });
-  } else {
-    res.send('서버가 정상적으로 실행중입니다. 로그인이 필요합니다.');
-  }
+  res.send('서버가 정상적으로 실행중입니다.');
 });
 
 // 404 처리
@@ -108,7 +79,7 @@ app.use((err, req, res, next) => {
       details: err.details
     });
   }
-  
+
   if (err.name === 'ReservationError') {
     return res.status(err.statusCode || 400).json({
       success: false,
@@ -142,4 +113,3 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 module.exports = app;
-
