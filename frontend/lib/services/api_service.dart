@@ -502,6 +502,31 @@ class ApiService {
     }
   }
 
+  // 특정 카테고리의 주간 예약 조회 (새로 추가)
+  Future<List<Map<String, dynamic>>> getCategoryWeeklyReservations({
+    required String roomId,
+    required String categoryId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/reservations/rooms/$roomId/categories/$categoryId/schedules'),
+        headers: _headers,
+      );
+
+      print('Get Category Weekly Reservations Response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['data']);
+      } else {
+        throw Exception('카테고리별 예약 조회 실패: ${response.body}');
+      }
+    } catch (e) {
+      print('Get Category Weekly Reservations Error: $e');
+      throw Exception('카테고리별 예약 조회 중 오류 발생: $e');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getVisitorReservations(String roomId) async {
     try {
       final response = await http.get(

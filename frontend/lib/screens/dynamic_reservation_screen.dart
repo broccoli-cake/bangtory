@@ -44,8 +44,8 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       // 방문객 예약인 경우 별도 메서드 호출
       await appState.loadVisitorReservations();
     } else {
-      // 일반 예약인 경우 기존 메서드 호출
-      await appState.loadReservationSchedules();
+      // 일반 예약인 경우 카테고리별 데이터 로드
+      await appState.loadCategoryReservations(widget.category['_id']);
     }
   }
 
@@ -374,18 +374,8 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   Widget _buildRegularReservationSchedule() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        // 안전한 필터링
-        final reservations = appState.reservationSchedules.where((reservation) {
-          if (reservation['category'] == null) return false;
-
-          final reservationCategory = reservation['category'];
-          if (reservationCategory is Map<String, dynamic>) {
-            final reservationCategoryId = reservationCategory['_id']?.toString();
-            final targetCategoryId = widget.category['_id']?.toString();
-            return reservationCategoryId == targetCategoryId;
-          }
-          return false;
-        }).toList();
+        // 해당 카테고리의 예약 데이터만 가져오기
+        final reservations = appState.getCategoryReservations(widget.category['_id']);
 
         return Column(
           children: [

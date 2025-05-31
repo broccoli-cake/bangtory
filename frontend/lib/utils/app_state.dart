@@ -17,6 +17,7 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _roomMembers = [];
   List<Map<String, dynamic>> _visitorReservations = [];
   List<Map<String, dynamic>> _pendingReservations = [];
+  Map<String, List<Map<String, dynamic>>> _categoryReservations = {}; // 카테고리별 예약 데이터를 저장하는 Map
 
   UserModel? get currentUser => _currentUser;
   RoomModel? get currentRoom => _currentRoom;
@@ -29,6 +30,7 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> get roomMembers => _roomMembers;
   List<Map<String, dynamic>> get visitorReservations => _visitorReservations;
   List<Map<String, dynamic>> get pendingReservations => _pendingReservations;
+  Map<String, List<Map<String, dynamic>>> get categoryReservations => _categoryReservations;
 
   void setLoading(bool loading) {
     _isLoading = loading;
@@ -358,6 +360,47 @@ class AppState extends ChangeNotifier {
 
   // ===== 예약 일정 관련 =====
 
+  Future<void> loadReservationSchedules({
+    DateTime? weekStartDate,
+    String? categoryId,
+  }) async {
+    if (_currentRoom == null) return;
+
+    try {
+      _reservationSchedules = await _apiService.getWeeklyReservations(
+        roomId: _currentRoom!.roomId,
+        weekStartDate: weekStartDate,
+        categoryId: categoryId,
+      );
+      notifyListeners();
+    } catch (e) {
+      print('Load reservation schedules error: $e');
+    }
+  }
+
+  // 특정 카테고리의 예약 데이터 로드 (새로 추가)
+  Future<void> loadCategoryReservations(String categoryId) async {
+    if (_currentRoom == null) return;
+
+    try {
+      final reservations = await _apiService.getCategoryWeeklyReservations(
+        roomId: _currentRoom!.roomId,
+        categoryId: categoryId,
+      );
+
+      _categoryReservations[categoryId] = reservations;
+      notifyListeners();
+    } catch (e) {
+      print('Load category reservations error: $e');
+    }
+  }
+
+  // 특정 카테고리의 예약 데이터 가져오기
+  List<Map<String, dynamic>> getCategoryReservations(String categoryId) {
+    return _categoryReservations[categoryId] ?? [];
+  }
+
+  // 기존 createReservationSchedule 메서드 수정
   Future<void> createReservationSchedule({
     required String categoryId,
     int? dayOfWeek,
@@ -381,11 +424,15 @@ class AppState extends ChangeNotifier {
         isRecurring: isRecurring,
       );
 
-      // 방문객 예약인 경우 방문객 예약 목록도 업데이트
+      // 방문객 예약인 경우
       if (specificDate != null) {
         await loadVisitorReservations();
         await loadPendingReservations();
       } else {
+        // 일반 예약인 경우 - 해당 카테고리 데이터 업데이트
+        await loadCategoryReservations(categoryId);
+
+        // 전체 예약 목록도 업데이트
         _reservationSchedules.add(newSchedule);
       }
 
@@ -396,36 +443,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> loadReservationSchedules({
-    DateTime? weekStartDate,
-    String? categoryId,
-  }) async {
-    if (_currentRoom == null) return;
-
-    try {
-      _reservationSchedules = await _apiService.getWeeklyReservations(
-        roomId: _currentRoom!.roomId,
-        weekStartDate: weekStartDate,
-        categoryId: categoryId,
-      );
-      notifyListeners();
-    } catch (e) {
-      print('Load reservation schedules error: $e');
-    }
-  }
-
+  // deleteReservationSchedule 메서드도 수정
   Future<void> deleteReservationSchedule(String scheduleId) async {
     try {
       await _apiService.deleteReservationSchedule(scheduleId);
 
-      // 일반 예약 목록에서 제거
+      // 모든 관련 데이터에서 제거
       _reservationSchedules.removeWhere((schedule) => schedule['_id'] == scheduleId);
-
-      // 방문객 예약 목록에서 제거
       _visitorReservations.removeWhere((schedule) => schedule['_id'] == scheduleId);
-
-      // 대기 중인 예약 목록에서 제거
       _pendingReservations.removeWhere((schedule) => schedule['_id'] == scheduleId);
+
+      // 카테고리별 데이터에서도 제거
+      for (String categoryId in _categoryReservations.keys) {
+        _categoryReservations[categoryId]?.removeWhere(
+                (schedule) => schedule['_id'] == scheduleId
+        );
+      }
 
       notifyListeners();
     } catch (e) {
@@ -434,10 +467,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-
-
-  // ===== 기타 =====
-
+  // logout 메서드에 카테고리 데이터 정리 추가
   Future<void> logout() async {
     _currentUser = null;
     _currentRoom = null;
@@ -447,6 +477,7 @@ class AppState extends ChangeNotifier {
     _reservationSchedules = [];
     _visitorReservations = [];
     _pendingReservations = [];
+    _categoryReservations = {};  // 추가
     _roomMembers = [];
     await _clearUserId();
     notifyListeners();
