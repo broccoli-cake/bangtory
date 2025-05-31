@@ -476,6 +476,7 @@ class ApiService {
     }
   }
 
+  // 주간 예약 조회 - 경로 수정
   Future<List<Map<String, dynamic>>> getWeeklyReservations({
     required String roomId,
     DateTime? weekStartDate,
@@ -487,7 +488,7 @@ class ApiService {
         if (categoryId != null) 'categoryId': categoryId,
       };
 
-      final uri = Uri.parse('$baseUrl/reservations/rooms/$roomId/schedules/weekly')
+      final uri = Uri.parse('$baseUrl/reservations/weekly-schedules/$roomId')
           .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _headers);
 
@@ -502,23 +503,23 @@ class ApiService {
     }
   }
 
-  // 특정 카테고리의 주간 예약 조회 (새로 추가)
+  // 카테고리별 주간 예약 조회 - 경로 수정
   Future<List<Map<String, dynamic>>> getCategoryWeeklyReservations({
     required String roomId,
     required String categoryId,
   }) async {
     try {
-      // ⭐ 완전히 새로운 URL 구조 ⭐
       final url = '$baseUrl/reservations/category-schedules/$roomId/$categoryId';
 
       print('API 요청 URL: $url');
+      print('Room ID: $roomId, Category ID: $categoryId');
 
       final response = await http.get(
         Uri.parse(url),
         headers: _headers,
       );
 
-      print('Response: ${response.statusCode} - ${response.body}');
+      print('Get Category Weekly Reservations Response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -527,15 +528,16 @@ class ApiService {
         throw Exception('카테고리별 예약 조회 실패: ${response.body}');
       }
     } catch (e) {
-      print('Error: $e');
+      print('Get Category Weekly Reservations Error: $e');
       throw Exception('카테고리별 예약 조회 중 오류 발생: $e');
     }
   }
 
+  // 방문객 예약 조회 - 경로 수정
   Future<List<Map<String, dynamic>>> getVisitorReservations(String roomId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/reservations/rooms/$roomId/schedules/visitors'),
+        Uri.parse('$baseUrl/reservations/visitor-schedules/$roomId'),
         headers: _headers,
       );
 
@@ -553,10 +555,11 @@ class ApiService {
     }
   }
 
+  // 대기 중인 예약 조회 - 경로 수정
   Future<List<Map<String, dynamic>>> getPendingReservations(String roomId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/reservations/rooms/$roomId/schedules/pending'),
+        Uri.parse('$baseUrl/reservations/pending-schedules/$roomId'),
         headers: _headers,
       );
 
