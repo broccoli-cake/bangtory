@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../utils/app_state.dart';
 import '../../screens/home_screen.dart';
 import '../../screens/chat_screen.dart';
@@ -26,6 +25,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _loadData();
   }
 
+  // 한국어 요일 매핑
+  String _getKoreanWeekday(DateTime date) {
+    const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    return weekdays[date.weekday % 7];
+  }
+
+  // 날짜 포맷팅 (로케일 의존성 제거)
+  String _formatDate(DateTime date) {
+    return '${date.year}년 ${date.month}월 ${date.day}일 ${_getKoreanWeekday(date)}';
+  }
+
   Future<void> _loadData() async {
     final appState = Provider.of<AppState>(context, listen: false);
 
@@ -40,6 +50,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     // 방문객 예약 로드
     await appState.loadVisitorReservations();
+
+    // 상태 업데이트
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // 특정 날짜의 이벤트 가져오기
@@ -290,7 +305,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                         child: Text(
                           _selectedDay != null
-                              ? DateFormat('yyyy년 M월 d일 EEEE', 'ko_KR').format(_selectedDay!)
+                              ? _formatDate(_selectedDay!)
                               : '날짜를 선택하세요',
                           style: const TextStyle(
                             fontSize: 16,

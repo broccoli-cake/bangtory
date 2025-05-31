@@ -27,7 +27,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
   Future<void> _loadData() async {
     final appState = Provider.of<AppState>(context, listen: false);
     await appState.loadRoomMembers();
-    await appState.loadChoreSchedules();
+    await appState.loadChoreSchedules(); // 전체 일정 로드
   }
 
   Future<void> _addDuty() async {
@@ -54,6 +54,10 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${widget.category['name']} 일정이 등록되었습니다.')),
       );
+
+      // 데이터 새로고침 (AppState에서 이미 처리하지만 확실히 하기 위해)
+      await _loadData();
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('일정 등록 실패: $e')),
@@ -70,6 +74,10 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('일정이 삭제되었습니다.')),
       );
+
+      // 데이터 새로고침
+      await _loadData();
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('일정 삭제 실패: $e')),
@@ -86,6 +94,10 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('일정이 완료되었습니다.')),
       );
+
+      // 데이터 새로고침
+      await _loadData();
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('일정 완료 실패: $e')),

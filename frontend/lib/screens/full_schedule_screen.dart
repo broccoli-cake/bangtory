@@ -145,11 +145,7 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '카테고리 범례',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 1),
           Wrap(
             spacing: 12,
             runSpacing: 4,

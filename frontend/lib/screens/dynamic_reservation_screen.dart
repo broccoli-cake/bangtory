@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../utils/app_state.dart';
 
 class DynamicReservationScreen extends StatefulWidget {
@@ -35,6 +34,15 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  // 날짜 포맷팅 함수 추가
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDateTime(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _loadData() async {
@@ -320,8 +328,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                 side: BorderSide(color: borderColor, width: 1),
               ),
               child: ListTile(
-                title: Text(
-                  "${DateFormat('yyyy-MM-dd HH:mm').format(specificDate)} - $nickname$statusText",
+                title: Text("${_formatDateTime(specificDate)} - $nickname$statusText",
                   style: TextStyle(
                     fontWeight: status == 'pending' ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -549,7 +556,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                   });
                 }
               },
-              child: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+              child: Text(_formatDate(selectedDate)),
             ),
           ],
         ),

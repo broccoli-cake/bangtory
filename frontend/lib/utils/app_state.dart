@@ -244,6 +244,7 @@ class AppState extends ChangeNotifier {
 
   // ===== 집안일 일정 관련 =====
 
+
   Future<void> loadChoreSchedules({
     DateTime? startDate,
     DateTime? endDate,
@@ -283,7 +284,13 @@ class AppState extends ChangeNotifier {
         assignedTo: assignedTo,
         date: date,
       );
+
+      // 새로 생성된 일정을 바로 리스트에 추가
       _choreSchedules.add(newSchedule);
+
+      // 전체 데이터도 다시 로드하여 최신 상태 유지
+      await loadChoreSchedules();
+
       notifyListeners();
     } catch (e) {
       print('Create chore schedule error: $e');
@@ -309,7 +316,13 @@ class AppState extends ChangeNotifier {
   Future<void> deleteChoreSchedule(String scheduleId) async {
     try {
       await _apiService.deleteChoreSchedule(scheduleId);
+
+      // 로컬 리스트에서 즉시 제거
       _choreSchedules.removeWhere((schedule) => schedule['_id'] == scheduleId);
+
+      // 전체 데이터 다시 로드
+      await loadChoreSchedules();
+
       notifyListeners();
     } catch (e) {
       print('Delete chore schedule error: $e');
