@@ -1,5 +1,3 @@
-//프로필 이미지 설정(갤러리 이동), 랜덤 닉네임 불러오기 기능 추가 필요!!!
-
 import 'package:flutter/material.dart';
 import 'go_room_screen.dart';
 import 'package:http/http.dart' as http;
@@ -7,29 +5,55 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  final bool isResetMode;
+  const ProfileSetupScreen({super.key, this.isResetMode = false});
+
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
-}
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+
+  }
+  class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   bool _nicknameEdited = false; // 닉네임을 직접 입력했는지 여부
   @override
   void initState() {
-    super.initState();
-    _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
+  super.initState();
+  _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
   }
+
+  void _saveNickname(String nickname) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nickname', nickname);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: widget.isResetMode
+          ? AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          '프로필 수정',
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
+      )
+          : null,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 100.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '안녕하세요!\n프로필을 만들어 주세요.',
+              widget.isResetMode
+                  ? '닉네임을 수정하세요.'
+                  : '안녕하세요!\n프로필을 만들어 주세요.',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -37,7 +61,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const SizedBox(height: 50),
-            // 프로필 이미지
             Center(
               child: Stack(
                 children: [
@@ -62,12 +85,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            // 닉네임 입력창
             TextField(
               controller: _nicknameController,
               onTap: () {
                 if (!_nicknameEdited) {
-                  _nicknameController.clear(); // 처음 클릭 시 랜덤닉네임 제거
+                  _nicknameController.clear();
                   _nicknameEdited = true;
                 }
               },
@@ -83,7 +105,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const Spacer(),
-            // 완료 버튼
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -95,10 +116,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       const SnackBar(content: Text('닉네임을 입력해주세요!')),
                     );
                   } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const GoRoomScreen()),
-                    );
+                    _saveNickname(nickname);
+                    if (widget.isResetMode) {
+                      Navigator.pop(context); // 설정에서 왔다면 뒤로만 감
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const GoRoomScreen()),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -142,4 +168,3 @@ Future<void> createRoom(String roomName, String address) async {
     print('방 생성 실패: ${response.body}');
   }
 }
-

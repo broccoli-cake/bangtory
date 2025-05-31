@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
-import 'package:frontend/screens/onboarding_screen.dart'; // 위에 올려주신 OnboardingScreen
+import 'package:frontend/screens/onboarding_screen.dart';
+import 'package:frontend/screens/profile_setup_screen.dart'; // 추가
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,9 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: const Color(0xFFFA2E55),
             ),
             onPressed: () {
-              Navigator.pop(context); // 다이얼로그 닫기
+              Navigator.pop(context);
               // TODO: 로그아웃 처리 로직 추가
-
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -94,7 +94,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '프로필 관리',
             onTap: () {
-              // TODO: 프로필 화면으로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileSetupScreen(isResetMode: true),
+                ),
+              );
             },
           ),
           _buildSettingsItem(
