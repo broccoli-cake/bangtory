@@ -10,6 +10,8 @@ import 'package:frontend/screens/dish_washing.dart';
 import 'package:frontend/screens/trash_screen.dart';
 import 'package:frontend/screens/visit_reserve_screen.dart';
 import 'cleaning_duty_screen.dart';
+import 'dynamic_chore_screen.dart'; // 추가
+import 'dynamic_reservation_screen.dart'; // 추가
 import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
 import 'package:frontend/screens/chat_screen.dart';
@@ -39,11 +41,92 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCategories();
   }
 
-  // 카테고리 로드
   Future<void> _loadCategories() async {
     final appState = Provider.of<AppState>(context, listen: false);
     await appState.loadChoreCategories();
     await appState.loadReservationCategories();
+  }
+
+  // 기본 작업 아이템 빌드 (기존 화면 사용)
+  Widget _buildTaskItem(IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
+        if (label == '청소') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const CleaningDutyScreen()));
+        } else if (label == '분리수거') {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const trashscreen()));
+        } else if (label == '설거지') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const dishwashing()));
+        } else if (label == '욕실') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const BathScheduleScreen()));
+        } else if (label == '방문객') {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const VisitReserve()));
+        } else if (label == '세탁기') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const WasherReserveScreen()));
+        }
+      },
+      child: Column(
+        children: [
+          Icon(icon, size: 32, color: Colors.black54),
+          const SizedBox(height: 4),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  // 사용자 정의 카테고리 빌드 (동적 화면 사용)
+  List<Widget> _buildUserTasks(bool isChore) {
+    return [
+      Consumer<AppState>(
+        builder: (context, appState, child) {
+          final categories = isChore
+              ? appState.choreCategories.where((cat) => cat['type'] == 'custom').toList()
+              : appState.reservationCategories.where((cat) => cat['type'] == 'custom').toList();
+
+          return Wrap(
+            spacing: 40,
+            runSpacing: 24,
+            children: categories.map((category) {
+              return GestureDetector(
+                onTap: () {
+                  // 동적 화면으로 이동
+                  if (isChore) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DynamicChoreScreen(category: category),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DynamicReservationScreen(category: category),
+                      ),
+                    );
+                  }
+                },
+                onLongPress: () => _confirmDeleteCategory(isChore, category),
+                child: Column(
+                  children: [
+                    Text(category['icon'], style: const TextStyle(fontSize: 32)),
+                    const SizedBox(height: 4),
+                    Text(category['name']),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    ];
   }
 
   // 초대코드 생성 - 백엔드와 연동
@@ -402,36 +485,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 사용자 정의 카테고리 빌드 (백엔드 데이터 사용)
-  List<Widget> _buildUserTasks(bool isChore) {
-    return [
-      Consumer<AppState>(
-        builder: (context, appState, child) {
-          final categories = isChore
-              ? appState.choreCategories.where((cat) => cat['type'] == 'custom').toList()
-              : appState.reservationCategories.where((cat) => cat['type'] == 'custom').toList();
-
-          return Wrap(
-            spacing: 40,
-            runSpacing: 24,
-            children: categories.map((category) {
-              return GestureDetector(
-                onLongPress: () => _confirmDeleteCategory(isChore, category),
-                child: Column(
-                  children: [
-                    Text(category['icon'], style: const TextStyle(fontSize: 32)),
-                    const SizedBox(height: 4),
-                    Text(category['name']),
-                  ],
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
-    ];
-  }
-
   Widget _buildAddTaskButton(bool isChore) {
     return GestureDetector(
       onTap: () => _showAddCategoryDialog(isChore),
@@ -440,39 +493,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(Icons.add, size: 32, color: Colors.black54),
           SizedBox(height: 4),
           Text('추가'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(IconData icon, String label) {
-    return GestureDetector(
-      onTap: () {
-        if (label == '청소') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const CleaningDutyScreen()));
-        } else if (label == '분리수거') {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const trashscreen()));
-        } else if (label == '설거지') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const dishwashing()));
-        } else if (label == '욕실') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const BathScheduleScreen()));
-        } else if (label == '방문객') {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const VisitReserve()));
-        } else if (label == '세탁기') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const WasherReserveScreen()));
-        }
-      },
-      child: Column(
-        children: [
-          Icon(icon, size: 32, color: Colors.black54),
-          const SizedBox(height: 4),
-          Text(label),
         ],
       ),
     );
