@@ -46,70 +46,91 @@ const reservationScheduleService = {
   },
 
   /**
-   * 방문객 예약 조회 (승인)
-   */
-  async getVisitorReservations(roomId) {
-    const query = {
-      room: roomId,
-      status: 'approved'
-    };
+     * 방문객 예약 조회 (승인된 것과 대기 중인 것 모두 포함)
+     */
+    async getVisitorReservations(roomId) {
+      const query = {
+        room: roomId,
+        specificDate: { $exists: true } // 방문객 예약은 specificDate 필드가 있음
+      };
 
-    const schedules = await ReservationSchedule.find(query)
+      const schedules = await ReservationSchedule.find(query)
+        .populate({
+          path: 'category',
+          select: 'name icon isVisitor',
+          match: { isVisitor: true }
+        })
+        .populate('reservedBy', 'nickname profileImageUrl')
+        .sort({ specificDate: 1, startHour: 1 }); // 날짜와 시간 순으로 정렬
+
+      // 방문객 예약만 필터링하고 승인 정보도 함께 조회
+      const visitorReservations = schedules.filter(schedule => schedule.category);
+
+      // 각 예약의 승인 정보 추가
+      const reservationsWithApproval = await Promise.all(
+        visitorReservations.map(async (reservation) => {
+          let approvalInfo = null;
+
+          if (reservation.status === 'pending') {
+            // 승인 대기 중인 예약의 승인 정보 조회
+            approvalInfo = await ReservationApproval.findOne({
+              reservation: reservation._id
+            }).populate('approvedBy.user', 'nickname');
+          }
+
+          return {
+            ...reservation.toObject(),
+            approval: approvalInfo,
+            needsApproval: reservation.status === 'pending'
+          };
+        })
+      );
+
+      return reservationsWithApproval;
+    },
+
+    /**
+     * 승인 대기 중인 예약 목록 조회 (방문객만) - 기존 메서드 유지
+     */
+    async getPendingReservations(roomId, userId) {
+      const pendingReservations = await ReservationSchedule.find({
+        room: roomId,
+        status: 'pending'
+      })
       .populate({
         path: 'category',
         select: 'name icon isVisitor',
         match: { isVisitor: true }
       })
       .populate('reservedBy', 'nickname profileImageUrl')
+      .populate({
+        path: 'room',
+        select: 'name'
+      })
       .sort({ createdAt: -1 });
 
-    return schedules.filter(schedule => schedule.category);
-  },
+      const visitorReservations = pendingReservations.filter(reservation => reservation.category);
 
-  /**
-   * 승인 대기 중인 예약 목록 조회 (방문객만)
-   */
-  async getPendingReservations(roomId, userId) {
-    const pendingReservations = await ReservationSchedule.find({
-      room: roomId,
-      status: 'pending'
-    })
-    .populate({
-      path: 'category',
-      select: 'name icon isVisitor',
-      match: { isVisitor: true } // 방문객만
-    })
-    .populate('reservedBy', 'nickname profileImageUrl')
-    .populate({
-      path: 'room',
-      select: 'name'
-    })
-    .sort({ createdAt: -1 });
+      const reservationsWithApproval = await Promise.all(
+        visitorReservations.map(async (reservation) => {
+          const approval = await ReservationApproval.findOne({
+            reservation: reservation._id
+          }).populate('approvedBy.user', 'nickname');
 
-    // 방문객 예약만 필터링
-    const visitorReservations = pendingReservations.filter(reservation => reservation.category);
+          const hasUserApproved = approval?.approvedBy.some(
+            app => app.user._id.toString() === userId.toString()
+          ) || false;
 
-    // 각 예약의 승인 정보도 함께 조회
-    const reservationsWithApproval = await Promise.all(
-      visitorReservations.map(async (reservation) => {
-        const approval = await ReservationApproval.findOne({ 
-          reservation: reservation._id 
-        }).populate('approvedBy.user', 'nickname');
-        
-        const hasUserApproved = approval?.approvedBy.some(
-          app => app.user._id.toString() === userId.toString()
-        ) || false;
+          return {
+            ...reservation.toObject(),
+            approval: approval || null,
+            hasUserApproved
+          };
+        })
+      );
 
-        return {
-          ...reservation.toObject(),
-          approval: approval || null,
-          hasUserApproved
-        };
-      })
-    );
-
-    return reservationsWithApproval;
-  },
+      return reservationsWithApproval;
+    },
 
   /**
    * 예약 일정 생성
