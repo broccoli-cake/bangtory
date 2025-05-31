@@ -8,42 +8,72 @@ const { ReservationError } = require('../utils/errors');
 
 const reservationScheduleService = {
   /**
-   * 특정 방의 주간 예약 일정 조회 (승인된 예약, 방문객 제외)
-   */
-  async getWeeklySchedules(roomId, weekStartDate, categoryId) {
-    const query = {
-      room: roomId,
-      weekStartDate: new Date(weekStartDate),
-      status: 'approved',
-      specificDate: { $exists: false } // 방문객 예약 제외
-    };
+     * 특정 방의 주간 예약 일정 조회 (승인된 예약, 방문객 제외)
+     * 모든 예약 카테고리 포함하도록 수정
+     */
+    async getWeeklySchedules(roomId, weekStartDate, categoryId) {
+      const query = {
+        room: roomId,
+        status: 'approved',
+        specificDate: { $exists: false } // 방문객 예약 제외 (specificDate가 있는 것들)
+      };
 
-    if (categoryId) {
-      query.category = categoryId;
-    }
+      // 주간 시작 날짜가 제공된 경우에만 필터 적용
+      if (weekStartDate) {
+        query.weekStartDate = new Date(weekStartDate);
+      }
 
-    const schedules = await ReservationSchedule.find(query)
-      .populate({
-        path: 'category',
-        select: 'name icon isVisitor',
-        match: { isVisitor: false } // 방문객 카테고리 제외
-      })
-      .populate('reservedBy', 'nickname profileImageUrl')
-      .sort({ dayOfWeek: 1, startHour: 1 });
+      // 특정 카테고리 필터 (선택사항)
+      if (categoryId) {
+        query.category = categoryId;
+      }
 
-    // populate 결과에서 category가 null인 항목 제거
-    return schedules.filter(schedule => schedule.category);
-  },
+      const schedules = await ReservationSchedule.find(query)
+        .populate({
+          path: 'category',
+          select: 'name icon isVisitor',
+          match: { isVisitor: false } // 방문객 카테고리 제외
+        })
+        .populate('reservedBy', 'nickname profileImageUrl')
+        .sort({ dayOfWeek: 1, startHour: 1 });
 
-  /**
-   * 현재 주의 예약 일정 조회 (승인된 예약, 방문객 제외)
-   */
-  async getCurrentWeekSchedules(roomId, categoryId) {
-    const today = new Date();
-    const weekStartDate = ReservationSchedule.getWeekStartDate(today);
+      // populate 결과에서 category가 null인 항목 제거
+      return schedules.filter(schedule => schedule.category);
+    },
 
-    return await this.getWeeklySchedules(roomId, weekStartDate, categoryId);
-  },
+    /**
+     * 현재 주의 예약 일정 조회 (승인된 예약, 방문객 제외)
+     * 현재 주의 모든 예약 카테고리 반환
+     */
+    async getCurrentWeekSchedules(roomId, categoryId) {
+      const today = new Date();
+      const weekStartDate = ReservationSchedule.getWeekStartDate(today);
+
+      return await this.getWeeklySchedules(roomId, weekStartDate, categoryId);
+    },
+
+    /**
+     * 특정 카테고리의 현재 주 예약만 조회 (새로 추가)
+     */
+    async getCategoryWeeklySchedules(roomId, categoryId) {
+      const today = new Date();
+      const weekStartDate = ReservationSchedule.getWeekStartDate(today);
+
+      const query = {
+        room: roomId,
+        category: categoryId,
+        weekStartDate: weekStartDate,
+        status: 'approved',
+        specificDate: { $exists: false }
+      };
+
+      const schedules = await ReservationSchedule.find(query)
+        .populate('category', 'name icon isVisitor')
+        .populate('reservedBy', 'nickname profileImageUrl')
+        .sort({ dayOfWeek: 1, startHour: 1 });
+
+      return schedules;
+    },
 
   /**
    * 방문객 예약 조회 (모든 상태 포함)

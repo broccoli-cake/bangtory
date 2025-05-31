@@ -42,6 +42,21 @@ const reservationScheduleController = {
     }
   },
 
+  async getCategoryWeeklySchedules(req, res, next) {
+      try {
+        const { roomId, categoryId } = req.params;
+
+        const schedules = await reservationScheduleService.getCategoryWeeklySchedules(
+          roomId,
+          categoryId
+        );
+
+        res.json(successResponse(schedules, '카테고리별 주간 예약 일정을 조회했습니다.'));
+      } catch (error) {
+        next(error);
+      }
+  },
+
   /**
    * 방문객 예약 조회
    */
