@@ -87,14 +87,14 @@ reservationScheduleSchema.pre('save', function(next) {
   next();
 });
 
-// 주의 시작 날짜(월요일) 계산 헬퍼 메서드
+// 주의 시작 날짜(일요일) 계산 헬퍼 메서드
 reservationScheduleSchema.statics.getWeekStartDate = function(date) {
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 월요일을 주의 시작으로
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+  const day = d.getDay(); // 일요일: 0, 월요일: 1, ..., 토요일: 6
+  const diff = d.getDate() - day; // 일요일을 주의 시작으로
+  const sunday = new Date(d.setDate(diff));
+  sunday.setHours(0, 0, 0, 0);
+  return sunday;
 };
 
 // 현재 주인지 확인하는 메서드
