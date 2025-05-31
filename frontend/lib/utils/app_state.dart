@@ -15,6 +15,8 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _choreSchedules = [];
   List<Map<String, dynamic>> _reservationSchedules = [];
   List<Map<String, dynamic>> _roomMembers = [];
+  List<Map<String, dynamic>> _visitorReservations = [];
+  List<Map<String, dynamic>> _pendingReservations = [];
 
   UserModel? get currentUser => _currentUser;
   RoomModel? get currentRoom => _currentRoom;
@@ -25,6 +27,8 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> get choreSchedules => _choreSchedules;
   List<Map<String, dynamic>> get reservationSchedules => _reservationSchedules;
   List<Map<String, dynamic>> get roomMembers => _roomMembers;
+  List<Map<String, dynamic>> get visitorReservations => _visitorReservations;
+  List<Map<String, dynamic>> get pendingReservations => _pendingReservations;
 
   void setLoading(bool loading) {
     _isLoading = loading;
@@ -311,6 +315,47 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ===== 방문객 예약 관련 =====
+
+  Future<void> loadVisitorReservations() async {
+    if (_currentRoom == null) return;
+
+    try {
+      _visitorReservations = await _apiService.getVisitorReservations(_currentRoom!.roomId);
+      notifyListeners();
+    } catch (e) {
+      print('Load visitor reservations error: $e');
+    }
+  }
+
+  Future<void> loadPendingReservations() async {
+    if (_currentRoom == null) return;
+
+    try {
+      _pendingReservations = await _apiService.getPendingReservations(_currentRoom!.roomId);
+      notifyListeners();
+    } catch (e) {
+      print('Load pending reservations error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> approveReservation(String reservationId) async {
+    try {
+      final result = await _apiService.approveReservation(reservationId);
+
+      // 방문객 예약과 대기 중인 예약 목록 다시 로드
+      await loadVisitorReservations();
+      await loadPendingReservations();
+
+      notifyListeners();
+
+      return result;
+    } catch (e) {
+      print('Approve reservation error: $e');
+      rethrow;
+    }
+  }
+
   // ===== 예약 일정 관련 =====
 
   Future<void> createReservationSchedule({
@@ -335,7 +380,15 @@ class AppState extends ChangeNotifier {
         endHour: endHour,
         isRecurring: isRecurring,
       );
-      _reservationSchedules.add(newSchedule);
+
+      // 방문객 예약인 경우 방문객 예약 목록도 업데이트
+      if (specificDate != null) {
+        await loadVisitorReservations();
+        await loadPendingReservations();
+      } else {
+        _reservationSchedules.add(newSchedule);
+      }
+
       notifyListeners();
     } catch (e) {
       print('Create reservation schedule error: $e');
@@ -364,13 +417,24 @@ class AppState extends ChangeNotifier {
   Future<void> deleteReservationSchedule(String scheduleId) async {
     try {
       await _apiService.deleteReservationSchedule(scheduleId);
+
+      // 일반 예약 목록에서 제거
       _reservationSchedules.removeWhere((schedule) => schedule['_id'] == scheduleId);
+
+      // 방문객 예약 목록에서 제거
+      _visitorReservations.removeWhere((schedule) => schedule['_id'] == scheduleId);
+
+      // 대기 중인 예약 목록에서 제거
+      _pendingReservations.removeWhere((schedule) => schedule['_id'] == scheduleId);
+
       notifyListeners();
     } catch (e) {
       print('Delete reservation schedule error: $e');
       rethrow;
     }
   }
+
+
 
   // ===== 기타 =====
 
@@ -381,6 +445,8 @@ class AppState extends ChangeNotifier {
     _reservationCategories = [];
     _choreSchedules = [];
     _reservationSchedules = [];
+    _visitorReservations = [];
+    _pendingReservations = [];
     _roomMembers = [];
     await _clearUserId();
     notifyListeners();

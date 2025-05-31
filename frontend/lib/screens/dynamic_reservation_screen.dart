@@ -39,7 +39,14 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
 
   Future<void> _loadData() async {
     final appState = Provider.of<AppState>(context, listen: false);
-    await appState.loadReservationSchedules();
+
+    if (isVisitorCategory) {
+      // 방문객 예약인 경우 별도 메서드 호출
+      await appState.loadVisitorReservations();
+    } else {
+      // 일반 예약인 경우 기존 메서드 호출
+      await appState.loadReservationSchedules();
+    }
   }
 
   void _selectTime(bool isStart) async {
@@ -105,11 +112,17 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${widget.category['name']} 예약이 등록되었습니다.')),
+        SnackBar(
+          content: Text('${widget.category['name']} 예약이 등록되었습니다.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('예약 등록 실패: $e')),
+        SnackBar(
+          content: Text('예약 등록 실패: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -121,20 +134,101 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       await appState.deleteReservationSchedule(reservation['_id']);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('예약이 삭제되었습니다.')),
+        const SnackBar(
+          content: Text('예약이 삭제되었습니다.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제 실패: $e')),
+        SnackBar(
+          content: Text('삭제 실패: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
+  }
+
+  Future<void> _approveReservation(Map<String, dynamic> reservation) async {
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    try {
+      final result = await appState.approveReservation(reservation['_id']);
+
+      final remainingApprovals = result['remainingApprovals'] ?? 0;
+
+      if (remainingApprovals > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('승인했습니다. ${remainingApprovals}명의 승인이 더 필요합니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('모든 멤버가 승인했습니다! 예약이 최종 승인되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('승인 실패: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 승인자 목록 위젯
+  Widget _buildApprovalList(List approvedBy) {
+    if (approvedBy.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final approverNames = approvedBy
+        .map((app) => app['user']['nickname']?.toString() ?? '알 수 없음')
+        .join(', ');
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        '승인한 멤버: $approverNames',
+        style: const TextStyle(
+          fontSize: 11,
+          color: Colors.blue,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+
+  // 상태에 따른 부제목 색상
+  Color _getSubtitleColor(String status, String approvalStatus) {
+    if (status == 'pending') {
+      switch (approvalStatus) {
+        case 'pending':
+          return Colors.red;
+        case 'partial_approved':
+          return Colors.orange;
+        case 'fully_approved':
+          return Colors.blue;
+        default:
+          return Colors.grey;
+      }
+    } else if (status == 'approved') {
+      return Colors.green;
+    }
+    return Colors.grey;
   }
 
   Widget _buildVisitorReservationList() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        // 안전한 필터링
-        final reservations = appState.reservationSchedules.where((reservation) {
+        // 방문객 예약 목록 사용
+        final reservations = appState.visitorReservations.where((reservation) {
           if (reservation['category'] == null) return false;
 
           final reservationCategory = reservation['category'];
@@ -145,6 +239,15 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
           }
           return false;
         }).toList();
+
+        if (reservations.isEmpty) {
+          return const Center(
+            child: Text(
+              '등록된 방문객 예약이 없습니다.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
 
         return ListView.builder(
           itemCount: reservations.length,
@@ -162,15 +265,103 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
             if (reservedBy == null) return const SizedBox.shrink();
 
             final nickname = reservedBy['nickname']?.toString() ?? '알 수 없음';
+            final status = reservation['status'] ?? 'approved';
+            final approvalStatus = reservation['approvalStatus'] ?? 'approved';
+
+            // 승인 정보
+            final currentApprovals = reservation['currentApprovals'] ?? 0;
+            final requiredApprovals = reservation['requiredApprovals'] ?? 0;
+            final totalMembers = reservation['totalMembers'] ?? 0;
+
+            // 현재 사용자가 이미 승인했는지 확인
+            bool hasUserApproved = false;
+            final approval = reservation['approval'];
+            if (approval != null && approval['approvedBy'] != null) {
+              final approvedBy = approval['approvedBy'] as List;
+              hasUserApproved = approvedBy.any((app) =>
+              app['user']['_id']?.toString() == appState.apiService.userId
+              );
+            }
+
+            // 상태에 따른 색상 및 텍스트 설정
+            Color cardColor = Colors.white;
+            Color borderColor = Colors.grey.shade300;
+            String statusText = '';
+            String subtitleText = '';
+
+            if (status == 'pending') {
+              if (approvalStatus == 'pending') {
+                cardColor = Colors.red.shade50;
+                borderColor = Colors.red.shade300;
+                statusText = ' (승인 대기 - $currentApprovals/$requiredApprovals)';
+                subtitleText = '모든 방 멤버의 승인이 필요합니다';
+              } else if (approvalStatus == 'partial_approved') {
+                cardColor = Colors.orange.shade50;
+                borderColor = Colors.orange.shade300;
+                statusText = ' (부분 승인 - $currentApprovals/$requiredApprovals)';
+                subtitleText = '${requiredApprovals - currentApprovals}명의 승인이 더 필요합니다';
+              } else if (approvalStatus == 'fully_approved') {
+                cardColor = Colors.blue.shade50;
+                borderColor = Colors.blue.shade300;
+                statusText = ' (승인 완료 처리 중...)';
+                subtitleText = '모든 멤버가 승인했습니다. 곧 최종 승인됩니다.';
+              }
+            } else if (status == 'approved') {
+              cardColor = Colors.green.shade50;
+              borderColor = Colors.green.shade300;
+              statusText = ' (최종 승인)';
+              subtitleText = '예약이 확정되었습니다';
+            }
 
             return Card(
+              color: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
               child: ListTile(
                 title: Text(
-                  "${DateFormat('yyyy-MM-dd HH:mm').format(specificDate)} - $nickname",
+                  "${DateFormat('yyyy-MM-dd HH:mm').format(specificDate)} - $nickname$statusText",
+                  style: TextStyle(
+                    fontWeight: status == 'pending' ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteReservation(reservation),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subtitleText,
+                      style: TextStyle(
+                        color: _getSubtitleColor(status, approvalStatus),
+                        fontSize: 12,
+                      ),
+                    ),
+                    // 승인자 목록 표시 (대기 중인 예약만)
+                    if (status == 'pending' && approval != null && approval['approvedBy'] != null)
+                      _buildApprovalList(approval['approvedBy']),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 승인 버튼 (조건: 대기 중, 본인 예약 아님, 아직 승인 안함)
+                    if (status == 'pending' &&
+                        reservedBy['_id']?.toString() != appState.apiService.userId &&
+                        !hasUserApproved)
+                      IconButton(
+                        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                        onPressed: () => _approveReservation(reservation),
+                        tooltip: '승인',
+                      ),
+                    // 이미 승인한 경우 체크 표시
+                    if (status == 'pending' && hasUserApproved)
+                      const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    // 삭제 버튼
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteReservation(reservation),
+                    ),
+                  ],
                 ),
               ),
             );

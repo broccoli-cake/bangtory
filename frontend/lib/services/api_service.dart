@@ -509,6 +509,8 @@ class ApiService {
         headers: _headers,
       );
 
+      print('Get Visitor Reservations Response: ${response.statusCode} - ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);
@@ -516,7 +518,52 @@ class ApiService {
         throw Exception('방문객 예약 조회 실패: ${response.body}');
       }
     } catch (e) {
+      print('Get Visitor Reservations Error: $e');
       throw Exception('방문객 예약 조회 중 오류 발생: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingReservations(String roomId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/reservations/rooms/$roomId/schedules/pending'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['data']);
+      } else {
+        throw Exception('대기 중인 예약 조회 실패: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('대기 중인 예약 조회 중 오류 발생: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> approveReservation(String reservationId) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/reservations/schedules/$reservationId/approve'),
+        headers: _headers,
+      );
+
+      print('Approve Reservation Response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'isFullyApproved': data['data']['isFullyApproved'] ?? false,
+          'currentApprovals': data['data']['currentApprovals'] ?? 0,
+          'requiredApprovals': data['data']['requiredApprovals'] ?? 0,
+          'remainingApprovals': data['data']['remainingApprovals'] ?? 0,
+        };
+      } else {
+        throw Exception('예약 승인 실패: ${response.body}');
+      }
+    } catch (e) {
+      print('Approve Reservation Error: $e');
+      throw Exception('예약 승인 중 오류 발생: $e');
     }
   }
 
