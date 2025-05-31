@@ -68,6 +68,31 @@ app.use((req, res) => {
   res.status(404).send('페이지를 찾을 수 없습니다.');
 });
 
+// 에러 핸들링 미들웨어
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+      details: err.details
+    });
+  }
+
+  if (err.name === 'ReservationError') {
+    return res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message
+    });
+  }
+
+  res.status(500).json({
+    resultCode: '500',
+    resultMessage: '서버 오류가 발생했습니다.'
+  });
+});
+
 // 서버 포트 설정
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
@@ -86,23 +111,5 @@ if (process.env.NODE_ENV !== 'test') {
     .then(() => console.log('MongoDB 연결 성공'))
     .catch(err => console.error('MongoDB 연결 실패:', err));
 }
-
-// 에러 핸들링 미들웨어
-app.use((err, req, res, next) => {
-  console.error('에러 발생:', err);
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || '서버 오류가 발생했습니다.'
-  });
-});
-
-// 404 에러 핸들링
-app.use('*', (req, res) => {
-  console.log('404 - 요청된 URL:', req.originalUrl);
-  res.status(404).json({
-    success: false,
-    message: '페이지를 찾을 수 없습니다.'
-  });
-});
 
 module.exports = app;
