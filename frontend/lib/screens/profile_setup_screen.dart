@@ -11,14 +11,14 @@ class ProfileSetupScreen extends StatefulWidget {
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 
-  }
-  class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+}
+class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   bool _nicknameEdited = false; // 닉네임을 직접 입력했는지 여부
   @override
   void initState() {
-  super.initState();
-  _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
+    super.initState();
+    _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
   }
 
   void _saveNickname(String nickname) async {

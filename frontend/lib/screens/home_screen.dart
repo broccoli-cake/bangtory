@@ -8,6 +8,7 @@ import 'trash_screen.dart';
 import 'package:frontend/screens/cleaning_duty_screen.dart';
 import 'bathroom_reserve_screen.dart';
 import 'visit_reserve_screen.dart';
+import 'package:frontend/screens/profile_setup_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
 import 'package:frontend/screens/full_schedule_screen.dart';
@@ -30,7 +31,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late String userName;
   bool isChoreSelected = true;
+
 
   List<String> participants = [];
   //카테고리 추가 관련
@@ -47,6 +50,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final rand = Random();
     return List.generate(6, (index) => chars[rand.nextInt(chars.length)]).join();
   }
+  void _goToSettings() async {
+    final shouldRefresh = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+
+    if (shouldRefresh == true) {
+      _buildProfileSection(); // SharedPreferences에서 새 닉네임 불러오기
+    }
+  }
+  Widget _buildProfileSection() => ListTile(
+    leading: CircleAvatar(
+      radius: 24,
+      backgroundColor: Colors.pinkAccent,
+      child: const Icon(Icons.face, color: Colors.white),
+    ),
+    title: Text(widget.userName,
+        style: const TextStyle(fontWeight: FontWeight.bold)),
+    subtitle: const Text('방장'),
+    trailing: IconButton(
+      icon: const Icon(Icons.share),
+      onPressed: _showInviteCodeDialog,
+    ),
+  );
+
 
   void _showInviteCodeDialog() {
     final inviteCode = _generateInviteCode();
@@ -432,20 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProfileSection() => ListTile(
-    leading: CircleAvatar(
-      radius: 24,
-      backgroundColor: Colors.pinkAccent,
-      child: const Icon(Icons.face, color: Colors.white),
-    ),
-    title: Text(widget.userName,
-        style: const TextStyle(fontWeight: FontWeight.bold)),
-    subtitle: const Text('방장'),
-    trailing: IconButton(
-      icon: const Icon(Icons.share),
-      onPressed: _showInviteCodeDialog,
-    ),
-  );
+
 
   Widget _buildToggleButton(String text, bool isSelected, VoidCallback onTap) =>
       GestureDetector(

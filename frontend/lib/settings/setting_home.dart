@@ -63,12 +63,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
+            Text(label,
+                style:
+                TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
             trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _navigateToProfileSetup() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProfileSetupScreen(isResetMode: true),
+      ),
+    );
+
+    if (changed == true) {
+      // 프로필 변경되었으면 이 화면을 호출한 쪽에 변경 알림 전달
+      Navigator.pop(context, true);
+    }
+    // 변경 안됐으면 그냥 이 화면에 머무름
   }
 
   @override
@@ -93,14 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _buildSettingsItem(
             label: '프로필 관리',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ProfileSetupScreen(isResetMode: true),
-                ),
-              );
-            },
+            onTap: _navigateToProfileSetup,
           ),
           _buildSettingsItem(
             label: '푸시알림',
