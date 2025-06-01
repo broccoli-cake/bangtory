@@ -1,93 +1,41 @@
-// cleaning_duty_screen.dart
-
 import 'package:flutter/material.dart';
 
-class trashscreen extends StatefulWidget {
-  const trashscreen({super.key});
+class TrashDutyScreen extends StatefulWidget {
+  const TrashDutyScreen({super.key});
 
   @override
-  State<trashscreen> createState() => _CleaningDutyScreenState();
+  State<TrashDutyScreen> createState() => _TrashDutyState();
 }
 
-class _CleaningDutyScreenState extends State<trashscreen> {
+class _TrashDutyState extends State<TrashDutyScreen> {
   DateTime selectedDate = DateTime.now();
   String? selectedPerson;
   List<String> members = ['김민영', '홍수한', '민수연', '최현정'];
 
-  final List<Map<String, dynamic>> dutyList = [];
-
   void _addDuty() {
     if (selectedPerson != null) {
-      setState(() {
-        dutyList.add({
-          'date': selectedDate,
-          'person': selectedPerson,
-          'checked': false,
-        });
-        selectedPerson = null;
+      // 등록 버튼 누르면 현재 선택된 날짜와 당번 정보만 넘기고 화면 종료
+      Navigator.pop(context, {
+        'date': selectedDate,
+        'person': selectedPerson,
+        'done': false, // 필드명 done으로 통일
       });
+    } else {
+      // 당번 미선택 시 간단 알림
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('당번을 선택해주세요')),
+      );
     }
-  }
-
-  void _deleteDuty(int index) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('삭제하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                dutyList.removeAt(index);
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('분리수거 당번')),
+      appBar: AppBar(title: const Text('분리수거 당번 등록')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 등록 일정
-            Expanded(
-              child: ListView.builder(
-                itemCount: dutyList.length,
-                itemBuilder: (context, index) {
-                  final item = dutyList[index];
-                  return GestureDetector(
-                    onLongPress: () => _deleteDuty(index),
-                    child: ListTile(
-                      title: Text(
-                        "${item['date'].toString().split(' ')[0]} - ${item['person']}",
-                      ),
-                      trailing: Checkbox(
-                        value: item['checked'],
-                        activeColor: Colors.green,
-                        onChanged: (val) {
-                          setState(() {
-                            dutyList[index]['checked'] = val!;
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const Divider(),
             // 날짜 선택
             Row(
               children: [
