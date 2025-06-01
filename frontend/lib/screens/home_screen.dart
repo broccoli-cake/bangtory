@@ -113,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => StatefulBuilder(
+      builder: (_) => StatefulBuilder(     //다이얼로그안에서도 아이콘 바뀌게
         builder: (context, setStateDialog) {
           return AlertDialog(
             title: const Text('카테고리 추가'),
@@ -307,17 +307,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             // 할 일(카테고리) 목록
-            Wrap(
+            Wrap(                   // 기존 카테고리 코드
               spacing: 40,
               runSpacing: 24,
               alignment: WrapAlignment.center,
-              children: [ // 기본 카테고리
+              children: [ ..._buildDefaultTasks(isChoreSelected), // 기본 카테고리
                 ..._buildUserTasks(isChoreSelected),    // 사용자가 추가한 카테고리
-                 // 추가 버튼
+                _buildAddTaskButton(isChoreSelected),// 추가 버튼
               ],
             ),
-            const SizedBox(height: 20),
-            if (isChoreSelected)
+            /*const SizedBox(height: 20),
+            if (isChoreSelected)    //카테고리 코드 중복.
               Wrap(
                 spacing: 40,
                 runSpacing: 24,
@@ -365,9 +365,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildTaskItem(Icons.bathtub, '욕실'),
                   _buildTaskItem(Icons.local_laundry_service, '세탁기'),
                   _buildTaskItem(Icons.emoji_people, '방문객'),
-                  _buildTaskItem(Icons.add, '추가'),
+                  _buildAddTaskButton(false),
                 ],
-              ),
+              ), */
             const SizedBox(height: 24),
             Container(
               width: double.infinity,
@@ -457,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context), // ✅ 이 줄 추가됨
+      bottomNavigationBar: _buildBottomNavBar(context), //
     );
   }
 
