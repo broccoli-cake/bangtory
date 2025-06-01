@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/dish_washing.dart';
+import 'package:frontend/screens/washer_reserve.dart';
 import 'trash_screen.dart';
 import 'package:frontend/screens/cleaning_duty_screen.dart';
 import 'bathroom_reserve_screen.dart';
@@ -526,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
               context, MaterialPageRoute(builder: (_) => const VisitReserve()));
         } else if (label == '세탁기') {
           Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const BathScheduleScreen()));
+              MaterialPageRoute(builder: (_) => const WasherReserveScreen()));
         }
       },
       child: Column(
