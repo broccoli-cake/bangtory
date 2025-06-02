@@ -14,7 +14,7 @@ const reservationScheduleSchema = new mongoose.Schema({
   },
   reservedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'RoomMember', // User 대신 RoomMember 참조
+    ref: 'User', // User를 직접 참조하도록 변경
     required: true
   },
   // 요일 (0: 일요일, 1: 월요일, ..., 6: 토요일) - 방문객이 아닌 경우만 사용

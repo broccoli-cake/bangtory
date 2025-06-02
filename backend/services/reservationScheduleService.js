@@ -8,6 +8,30 @@ const { ReservationError } = require('../utils/errors');
 
 const reservationScheduleService = {
   /**
+   * 예약 데이터에 RoomMember 정보 추가하는 헬퍼 함수
+   */
+  async addMemberInfoToReservations(roomId, reservations) {
+    return await Promise.all(
+      reservations.map(async (reservation) => {
+        const roomMember = await RoomMember.findOne({
+          roomId: roomId,
+          userId: reservation.reservedBy._id
+        }).select('nickname profileImageUrl');
+
+        return {
+          ...reservation.toObject(),
+          reservedBy: {
+            _id: reservation.reservedBy._id,
+            name: reservation.reservedBy.name,
+            nickname: roomMember?.nickname || reservation.reservedBy.name,
+            profileImageUrl: roomMember?.profileImageUrl || '/images/profile1.png'
+          }
+        };
+      })
+    );
+  },
+
+  /**
    * 특정 방의 주간 예약 일정 조회 (승인된 예약, 방문객 제외)
    */
   async getWeeklySchedules(roomId, weekStartDate, categoryId) {
@@ -31,17 +55,11 @@ const reservationScheduleService = {
         select: 'name icon isVisitor',
         match: { isVisitor: false }
       })
-      .populate({
-        path: 'reservedBy',
-        select: 'nickname profileImageUrl userId',
-        populate: {
-          path: 'userId',
-          select: 'name'
-        }
-      })
+      .populate('reservedBy', 'name')
       .sort({ dayOfWeek: 1, startHour: 1 });
 
-    return schedules.filter(schedule => schedule.category);
+    const filteredSchedules = schedules.filter(schedule => schedule.category);
+    return await this.addMemberInfoToReservations(roomId, filteredSchedules);
   },
 
   /**
@@ -74,17 +92,10 @@ const reservationScheduleService = {
 
       const schedules = await ReservationSchedule.find(query)
         .populate('category', 'name icon isVisitor')
-        .populate({
-          path: 'reservedBy',
-          select: 'nickname profileImageUrl userId',
-          populate: {
-            path: 'userId',
-            select: 'name'
-          }
-        })
+        .populate('reservedBy', 'name')
         .sort({ dayOfWeek: 1, startHour: 1 });
 
-      return schedules;
+      return await this.addMemberInfoToReservations(roomId, schedules);
     } catch (error) {
       console.error('getCategoryWeeklySchedules 오류:', error);
       throw error;
@@ -106,21 +117,15 @@ const reservationScheduleService = {
         select: 'name icon isVisitor',
         match: { isVisitor: true }
       })
-      .populate({
-        path: 'reservedBy',
-        select: 'nickname profileImageUrl userId',
-        populate: {
-          path: 'userId',
-          select: 'name'
-        }
-      })
+      .populate('reservedBy', 'name')
       .sort({ specificDate: 1, startHour: 1 });
 
     const visitorReservations = schedules.filter(schedule => schedule.category);
+    const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
     const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
 
     const reservationsWithApproval = await Promise.all(
-      visitorReservations.map(async (reservation) => {
+      reservationsWithMemberInfo.map(async (reservation) => {
         let approvalInfo = null;
         let approvalStatus = 'approved';
 
@@ -146,7 +151,7 @@ const reservationScheduleService = {
         }
 
         return {
-          ...reservation.toObject(),
+          ...reservation,
           approval: approvalInfo,
           approvalStatus,
           totalMembers,
@@ -172,14 +177,7 @@ const reservationScheduleService = {
       select: 'name icon isVisitor',
       match: { isVisitor: true }
     })
-    .populate({
-      path: 'reservedBy',
-      select: 'nickname profileImageUrl userId',
-      populate: {
-        path: 'userId',
-        select: 'name'
-      }
-    })
+    .populate('reservedBy', 'name')
     .populate({
       path: 'room',
       select: 'name'
@@ -187,9 +185,10 @@ const reservationScheduleService = {
     .sort({ createdAt: -1 });
 
     const visitorReservations = pendingReservations.filter(reservation => reservation.category);
+    const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
 
     const reservationsWithApproval = await Promise.all(
-      visitorReservations.map(async (reservation) => {
+      reservationsWithMemberInfo.map(async (reservation) => {
         const approval = await ReservationApproval.findOne({
           reservation: reservation._id
         }).populate('approvedBy.user', 'nickname');
@@ -199,7 +198,7 @@ const reservationScheduleService = {
         ) || false;
 
         return {
-          ...reservation.toObject(),
+          ...reservation,
           approval: approval || null,
           hasUserApproved
         };
@@ -273,7 +272,7 @@ const reservationScheduleService = {
       newSchedule = new ReservationSchedule({
         room: scheduleData.room,
         category: scheduleData.category,
-        reservedBy: roomMember._id, // RoomMember의 _id 사용
+        reservedBy: userId, // userId를 직접 저장
         specificDate: reservationDate,
         startHour: scheduleData.startHour,
         endHour: scheduleData.endHour,
@@ -310,7 +309,7 @@ const reservationScheduleService = {
       newSchedule = new ReservationSchedule({
         room: scheduleData.room,
         category: scheduleData.category,
-        reservedBy: roomMember._id, // RoomMember의 _id 사용
+        reservedBy: userId, // userId를 직접 저장
         dayOfWeek: scheduleData.dayOfWeek,
         startHour: scheduleData.startHour,
         endHour: scheduleData.endHour,
@@ -423,8 +422,8 @@ const reservationScheduleService = {
       throw new ReservationError('방 멤버만 승인할 수 있습니다.', 403);
     }
 
-    // 예약자 본인은 승인할 수 없음 - RoomMember _id로 비교
-    if (reservation.reservedBy.toString() === roomMember._id.toString()) {
+    // 예약자 본인은 승인할 수 없음 - userId로 직접 비교
+    if (reservation.reservedBy.toString() === userId.toString()) {
       throw new ReservationError('본인의 예약은 승인할 수 없습니다.', 400);
     }
 
@@ -501,25 +500,14 @@ const reservationScheduleService = {
    */
   async deleteSchedule(scheduleId, userId) {
     const schedule = await ReservationSchedule.findById(scheduleId)
-      .populate('category')
-      .populate('reservedBy');
+      .populate('category');
 
     if (!schedule) {
       throw new ReservationError('예약을 찾을 수 없습니다.', 404);
     }
 
-    // 예약자 확인 - RoomMember를 통해 확인
-    const roomMember = await RoomMember.findOne({
-      roomId: schedule.room,
-      userId: userId
-    });
-
-    if (!roomMember) {
-      throw new ReservationError('방 멤버만 삭제할 수 있습니다.', 403);
-    }
-
-    // 예약자인지 확인 - RoomMember _id로 비교
-    if (schedule.reservedBy._id.toString() !== roomMember._id.toString()) {
+    // 예약자 확인 - userId로 직접 비교
+    if (schedule.reservedBy.toString() !== userId.toString()) {
       throw new ReservationError('예약자만 삭제할 수 있습니다.', 403);
     }
 
@@ -556,17 +544,19 @@ const reservationScheduleService = {
   },
 
   /**
-   * 지난 주 예약들 자동 정리
+   * 지난 주 예약들 자동 정리 (스케줄러에서 호출)
    */
   async cleanupOldReservations() {
     const today = new Date();
     const currentWeekStart = ReservationSchedule.getWeekStartDate(today);
 
+    // 일반 예약: 지난 주 예약 삭제
     const oldWeeklyReservations = await ReservationSchedule.find({
       weekStartDate: { $lt: currentWeekStart },
       specificDate: { $exists: false }
     }, '_id');
 
+    // 방문객 예약: 지난 날짜 예약 삭제
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(23, 59, 59, 999);
@@ -580,10 +570,12 @@ const reservationScheduleService = {
       ...oldVisitorReservations.map(r => r._id)
     ];
 
+    // 승인 정보 먼저 삭제
     await ReservationApproval.deleteMany({
       reservation: { $in: allOldReservationIds }
     });
 
+    // 예약 삭제
     await ReservationSchedule.deleteMany({
       _id: { $in: allOldReservationIds }
     });
@@ -593,7 +585,7 @@ const reservationScheduleService = {
   },
 
   /**
-   * 반복 예약 자동 생성
+   * 반복 예약 자동 생성 (스케줄러에서 호출)
    */
   async createNextWeekRecurringReservations() {
     const today = new Date();
@@ -601,6 +593,7 @@ const reservationScheduleService = {
     const nextWeekStart = new Date(currentWeekStart);
     nextWeekStart.setDate(nextWeekStart.getDate() + 7);
 
+    // 현재 주의 반복 예약들 조회
     const recurringReservations = await ReservationSchedule.find({
       weekStartDate: currentWeekStart,
       isRecurring: true,
@@ -611,6 +604,7 @@ const reservationScheduleService = {
     let createdCount = 0;
 
     for (const reservation of recurringReservations) {
+      // 다음 주에 이미 예약이 있는지 확인
       const existingReservation = await ReservationSchedule.findOne({
         room: reservation.room,
         category: reservation.category,
@@ -621,8 +615,11 @@ const reservationScheduleService = {
         endHour: reservation.endHour
       });
 
-      if (existingReservation) continue;
+      if (existingReservation) {
+        continue;
+      }
 
+      // 시간 겹침 확인
       const conflictingReservation = await ReservationSchedule.findOne({
         room: reservation.room,
         category: reservation.category,
@@ -637,8 +634,11 @@ const reservationScheduleService = {
         ]
       });
 
-      if (conflictingReservation) continue;
+      if (conflictingReservation) {
+        continue;
+      }
 
+      // 다음 주 예약 생성
       const nextWeekReservation = new ReservationSchedule({
         room: reservation.room,
         category: reservation.category,

@@ -13,7 +13,7 @@ const choreScheduleSchema = new mongoose.Schema({
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'RoomMember', // User 대신 RoomMember 참조
+    ref: 'User', // User를 직접 참조하도록 변경
     required: true
   },
   date: {
