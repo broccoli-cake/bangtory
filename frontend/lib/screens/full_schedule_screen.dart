@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
+import '../utils/icon_utils.dart'; // 추가
 import '../settings/setting_home.dart';
 import '../screens/home_screen.dart';
 import '../screens/chat_screen.dart';
@@ -63,23 +64,22 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
     return colorMap[categoryName] ?? Colors.grey;
   }
 
-  // 카테고리별 아이콘 매핑
-  IconData _getCategoryIcon(String categoryName) {
-    final iconMap = {
-      '욕실': Icons.bathtub,
-      '세탁기': Icons.local_laundry_service,
-      '주방': Icons.kitchen,
-      '거실': Icons.weekend,
-      '발코니': Icons.balcony,
-    };
+  // 카테고리별 아이콘 매핑 (IconUtils 사용) - 수정
+  IconData _getCategoryIcon(String categoryName, String? iconName) {
+    // 저장된 아이콘 이름이 있으면 우선 사용
+    if (iconName != null && iconName.isNotEmpty) {
+      return IconUtils.getIconData(iconName);
+    }
 
-    return iconMap[categoryName] ?? Icons.category;
+    // 카테고리 이름으로 기본 아이콘 반환
+    return IconUtils.getDefaultIconForCategory(categoryName);
   }
 
   void _showReservationDialog(Map<String, dynamic> reservation) {
     final category = reservation['category'];
     final reservedBy = reservation['reservedBy'];
     final categoryName = category?['name'] ?? '알 수 없음';
+    final categoryIcon = category?['icon']; // 아이콘 이름 가져오기
     final nickname = reservedBy?['nickname'] ?? '알 수 없음';
     final startHour = reservation['startHour']?.toString() ?? '0';
     final endHour = reservation['endHour']?.toString() ?? '0';
@@ -95,8 +95,10 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
           children: [
             Row(
               children: [
-                Icon(_getCategoryIcon(categoryName),
-                    color: _getCategoryColor(categoryName)),
+                Icon(
+                  _getCategoryIcon(categoryName, categoryIcon),
+                  color: _getCategoryColor(categoryName),
+                ),
                 const SizedBox(width: 8),
                 Text('카테고리: $categoryName'),
               ],
@@ -151,8 +153,9 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
             runSpacing: 4,
             children: nonVisitorCategories.map((category) {
               final categoryName = category['name'] ?? '알 수 없음';
+              final categoryIcon = category['icon']; // 아이콘 이름 가져오기
               final color = _getCategoryColor(categoryName);
-              final icon = _getCategoryIcon(categoryName);
+              final icon = _getCategoryIcon(categoryName, categoryIcon);
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
@@ -373,7 +376,8 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
                                               children: [
                                                 Icon(
                                                   _getCategoryIcon(
-                                                      matchingReservations.first['category']?['name'] ?? '알 수 없음'
+                                                    matchingReservations.first['category']?['name'] ?? '알 수 없음',
+                                                    matchingReservations.first['category']?['icon'], // 아이콘 이름 추가
                                                   ),
                                                   color: Colors.white,
                                                   size: 16,

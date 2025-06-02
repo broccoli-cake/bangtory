@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 import '../../utils/app_state.dart';
+import '../../utils/icon_utils.dart'; // 추가
 import '../../screens/home_screen.dart';
 import '../../screens/chat_screen.dart';
 import '../../screens/full_schedule_screen.dart';
@@ -39,6 +40,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _loadData() async {
     final appState = Provider.of<AppState>(context, listen: false);
 
+    // 집안일 및 예약 카테고리 로드
+    await appState.loadChoreCategories();
+    await appState.loadReservationCategories();
+
     // 집안일 일정 로드 (한 달 범위)
     final startDate = DateTime.now().subtract(const Duration(days: 30));
     final endDate = DateTime.now().add(const Duration(days: 30));
@@ -71,6 +76,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       'type': 'chore',
       'title': schedule['category']['name'] ?? '집안일',
       'assignee': schedule['assignedTo']['nickname'] ?? '담당자 없음',
+      'categoryIcon': schedule['category']['icon'], // 아이콘 정보 추가
     });
 
     // 방문객 예약 필터링
@@ -83,6 +89,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       'type': 'visitor',
       'title': '방문객',
       'assignee': reservation['reservedBy']['nickname'] ?? '예약자 없음',
+      'categoryIcon': reservation['category']['icon'], // 아이콘 정보 추가
     });
 
     events.addAll(choreEvents);
@@ -96,10 +103,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return _getEventsForDay(day).length;
   }
 
+  // 카테고리별 아이콘 가져오기 (IconUtils 사용) - 추가
+  IconData _getCategoryIcon(String categoryName, String? iconName, bool isChore) {
+    // 저장된 아이콘 이름이 있으면 우선 사용
+    if (iconName != null && iconName.isNotEmpty) {
+      return IconUtils.getIconData(iconName);
+    }
+
+    // 카테고리 이름으로 기본 아이콘 반환
+    return IconUtils.getDefaultIconForCategory(categoryName);
+  }
+
   Widget _buildEventCard(Map<String, dynamic> event) {
     final isChore = event['type'] == 'chore';
     final color = isChore ? Colors.blue : Colors.purple;
-    final icon = isChore ? Icons.cleaning_services : Icons.person;
+    final categoryName = event['title'];
+    final categoryIcon = event['categoryIcon']; // 아이콘 정보 가져오기
+    final icon = _getCategoryIcon(categoryName, categoryIcon, isChore);
 
     String subtitle = '';
     if (isChore) {
@@ -123,7 +143,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: color.withOpacity(0.2),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: 20), // IconUtils로 가져온 아이콘 사용
         ),
         title: Text(
           event['title'],
