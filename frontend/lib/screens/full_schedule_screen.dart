@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
-import '../utils/icon_utils.dart'; // 추가
+import '../utils/icon_utils.dart';
 import '../settings/setting_home.dart';
 import '../screens/home_screen.dart';
 import '../screens/chat_screen.dart';
@@ -16,6 +16,27 @@ class FullScheduleScreen extends StatefulWidget {
 
 class _FullScheduleScreenState extends State<FullScheduleScreen> {
   final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
+
+  // 카테고리별 고정 색상 매핑
+  final Map<String, Color> _categoryColorMap = {};
+  final List<Color> _availableColors = [
+    Colors.red.shade400,
+    Colors.blue.shade400,
+    Colors.green.shade400,
+    Colors.orange.shade400,
+    Colors.purple.shade400,
+    Colors.teal.shade400,
+    Colors.pink.shade400,
+    Colors.indigo.shade400,
+    Colors.cyan.shade400,
+    Colors.lime.shade400,
+    Colors.amber.shade400,
+    Colors.deepOrange.shade400,
+    Colors.lightBlue.shade400,
+    Colors.lightGreen.shade400,
+    Colors.deepPurple.shade400,
+    Colors.brown.shade400,
+  ];
 
   @override
   void initState() {
@@ -35,6 +56,23 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
         await appState.loadCategoryReservations(category['_id']);
       }
     }
+
+    // 카테고리별 색상 할당
+    _assignCategoryColors(appState.reservationCategories);
+  }
+
+  // 카테고리별 색상 할당
+  void _assignCategoryColors(List<Map<String, dynamic>> categories) {
+    int colorIndex = 0;
+    for (final category in categories) {
+      if (category['isVisitor'] != true) {
+        final categoryId = category['_id'];
+        if (!_categoryColorMap.containsKey(categoryId)) {
+          _categoryColorMap[categoryId] = _availableColors[colorIndex % _availableColors.length];
+          colorIndex++;
+        }
+      }
+    }
   }
 
   // 모든 예약 데이터를 합쳐서 가져오기
@@ -51,74 +89,97 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
     return allReservations;
   }
 
-  // 카테고리별 색상 매핑
-  Color _getCategoryColor(String categoryName) {
-    final colorMap = {
-      '욕실': Colors.redAccent,
-      '세탁기': Colors.blueAccent,
-      '주방': Colors.greenAccent,
-      '거실': Colors.orangeAccent,
-      '방': Colors.purpleAccent,
-      '화장실': Colors.pinkAccent,
-      '발코니': Colors.tealAccent,
-      '정원': Colors.lightGreenAccent,
-      '차고': Colors.brown,
-      '운동': Colors.indigoAccent,
-      '공부': Colors.cyanAccent,
-      '회의': Colors.grey,
-      '음식': Colors.deepOrangeAccent,
-      '쇼핑': Colors.amberAccent,
-      '의료': Colors.lightBlueAccent,
-      '여행': Colors.deepPurpleAccent,
-      '업무': Colors.blueGrey,
-    };
-
-    return colorMap[categoryName] ?? Colors.grey;
+  // 카테고리별 색상 가져오기
+  Color _getCategoryColor(String? categoryId) {
+    if (categoryId == null) return Colors.grey;
+    return _categoryColorMap[categoryId] ?? Colors.grey;
   }
 
-  // 카테고리별 아이콘 매핑 (IconUtils 사용) - 수정
+  // 카테고리별 아이콘 매핑
   IconData _getCategoryIcon(String categoryName, String? iconName) {
-    // 저장된 아이콘 이름이 있으면 우선 사용
     if (iconName != null && iconName.isNotEmpty) {
       return IconUtils.getIconData(iconName);
     }
-
-    // 카테고리 이름으로 기본 아이콘 반환
     return IconUtils.getDefaultIconForCategory(categoryName);
   }
 
+  // 특정 시간과 요일에 겹치는 예약들 찾기
+  List<Map<String, dynamic>> _getOverlappingReservations(int hour, int dayIndex, List<Map<String, dynamic>> allReservations) {
+    return allReservations.where((r) {
+      final dayOfWeek = r['dayOfWeek'];
+      final startHour = r['startHour'];
+      final endHour = r['endHour'];
+
+      if (dayOfWeek == null || startHour == null || endHour == null) {
+        return false;
+      }
+
+      int? dayOfWeekInt;
+      int? startHourInt;
+      int? endHourInt;
+
+      // 안전한 int 변환
+      if (dayOfWeek is int) {
+        dayOfWeekInt = dayOfWeek;
+      } else if (dayOfWeek is String) {
+        dayOfWeekInt = int.tryParse(dayOfWeek);
+      }
+
+      if (startHour is int) {
+        startHourInt = startHour;
+      } else if (startHour is String) {
+        startHourInt = int.tryParse(startHour);
+      }
+
+      if (endHour is int) {
+        endHourInt = endHour;
+      } else if (endHour is String) {
+        endHourInt = int.tryParse(endHour);
+      }
+
+      return dayOfWeekInt == dayIndex &&
+          startHourInt != null && startHourInt <= hour &&
+          endHourInt != null && endHourInt > hour;
+    }).toList();
+  }
+
+  // 예약 정보 다이얼로그 표시
   void _showReservationDialog(Map<String, dynamic> reservation) {
     final category = reservation['category'];
     final reservedBy = reservation['reservedBy'];
     final categoryName = category?['name'] ?? '알 수 없음';
-    final categoryIcon = category?['icon']; // 아이콘 이름 가져오기
+    final categoryIcon = category?['icon'];
     final nickname = reservedBy?['nickname'] ?? '알 수 없음';
     final startHour = reservation['startHour']?.toString() ?? '0';
     final endHour = reservation['endHour']?.toString() ?? '0';
     final isRecurring = reservation['isRecurring'] ?? false;
+    final categoryColor = _getCategoryColor(category?['_id']);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('$categoryName 예약 정보'),
+        title: Row(
+          children: [
+            Icon(
+              _getCategoryIcon(categoryName, categoryIcon),
+              color: categoryColor,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text('$categoryName 예약 정보')),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  _getCategoryIcon(categoryName, categoryIcon),
-                  color: _getCategoryColor(categoryName),
-                ),
-                const SizedBox(width: 8),
-                Text('카테고리: $categoryName'),
-              ],
-            ),
+            _buildInfoRow('카테고리', categoryName, categoryColor),
             const SizedBox(height: 8),
-            Text('예약자: $nickname'),
-            Text('시간: $startHour:00 ~ $endHour:00'),
-            Text('반복: ${isRecurring ? "매주" : "일회성"}'),
+            _buildInfoRow('예약자', nickname, Colors.grey[700]!),
+            const SizedBox(height: 8),
+            _buildInfoRow('시간', '$startHour:00 ~ $endHour:00', Colors.grey[700]!),
+            const SizedBox(height: 8),
+            _buildInfoRow('반복', isRecurring ? "매주" : "일회성", Colors.grey[700]!),
           ],
         ),
         actions: [
@@ -128,6 +189,85 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // 겹치는 예약들 표시 다이얼로그
+  void _showOverlappingReservationsDialog(List<Map<String, dynamic>> reservations, int hour, String dayName) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('$dayName요일 ${hour}:00 예약 목록'),
+        content: Container(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: reservations.length,
+            itemBuilder: (context, index) {
+              final reservation = reservations[index];
+              final category = reservation['category'];
+              final reservedBy = reservation['reservedBy'];
+              final categoryName = category?['name'] ?? '알 수 없음';
+              final categoryIcon = category?['icon'];
+              final nickname = reservedBy?['nickname'] ?? '알 수 없음';
+              final startHour = reservation['startHour']?.toString() ?? '0';
+              final endHour = reservation['endHour']?.toString() ?? '0';
+              final categoryColor = _getCategoryColor(category?['_id']);
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: Icon(
+                    _getCategoryIcon(categoryName, categoryIcon),
+                    color: categoryColor,
+                  ),
+                  title: Text(categoryName),
+                  subtitle: Text('$nickname · $startHour:00-$endHour:00'),
+                  trailing: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: categoryColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showReservationDialog(reservation);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color color) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 60,
+          child: Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(color: color),
+          ),
+        ),
+      ],
     );
   }
 
@@ -159,37 +299,192 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 1),
           Wrap(
             spacing: 12,
-            runSpacing: 4,
+            runSpacing: 8,
             children: nonVisitorCategories.map((category) {
               final categoryName = category['name'] ?? '알 수 없음';
-              final categoryIcon = category['icon']; // 아이콘 이름 가져오기
-              final color = _getCategoryColor(categoryName);
+              final categoryIcon = category['icon'];
+              final categoryId = category['_id'];
+              final color = _getCategoryColor(categoryId);
               final icon = _getCategoryIcon(categoryName, categoryIcon);
 
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: color, size: 16),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.7),
-                      shape: BoxShape.circle,
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: color, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      categoryName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: color.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(categoryName, style: const TextStyle(fontSize: 12)),
-                ],
+                  ],
+                ),
               );
             }).toList(),
           ),
         ],
       ),
+    );
+  }
+
+  // 시간 슬롯 셀 빌드 (겹치는 예약 처리)
+  Widget _buildTimeSlotCell(int hour, int dayIndex, List<Map<String, dynamic>> allReservations) {
+    final overlappingReservations = _getOverlappingReservations(hour, dayIndex, allReservations);
+
+    if (overlappingReservations.isEmpty) {
+      return Container(
+        height: 60,
+        margin: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+
+    // 겹치는 예약이 1개인 경우
+    if (overlappingReservations.length == 1) {
+      final reservation = overlappingReservations.first;
+      final category = reservation['category'];
+      final reservedBy = reservation['reservedBy'];
+      final categoryName = category?['name'] ?? '알 수 없음';
+      final categoryIcon = category?['icon'];
+      final categoryColor = _getCategoryColor(category?['_id']);
+
+      return GestureDetector(
+        onTap: () => _showReservationDialog(reservation),
+        child: Container(
+          height: 60,
+          margin: const EdgeInsets.all(1),
+          decoration: BoxDecoration(
+            color: categoryColor.withOpacity(0.7),
+            border: Border.all(color: categoryColor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _getCategoryIcon(categoryName, categoryIcon),
+                color: Colors.white,
+                size: 16,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                reservedBy?['nickname']?.toString() ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 겹치는 예약이 여러 개인 경우 - 동적 분할
+    return GestureDetector(
+      onTap: () => _showOverlappingReservationsDialog(
+        overlappingReservations,
+        hour,
+        days[dayIndex],
+      ),
+      child: Container(
+        height: 60,
+        margin: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: _buildOverlappingCell(overlappingReservations),
+      ),
+    );
+  }
+
+  // 겹치는 예약들을 가로로만 분할하여 표시
+  Widget _buildOverlappingCell(List<Map<String, dynamic>> reservations) {
+    final count = reservations.length;
+
+    // 모든 경우에 가로 분할만 사용
+    return Row(
+      children: reservations.asMap().entries.map((entry) {
+        final index = entry.key;
+        final reservation = entry.value;
+        final category = reservation['category'];
+        final reservedBy = reservation['reservedBy'];
+        final categoryColor = _getCategoryColor(category?['_id']);
+        final categoryName = category?['name'] ?? '?';
+        final nickname = reservedBy?['nickname'] ?? '';
+        final categoryIcon = category?['icon'];
+
+        return Expanded(
+          child: Container(
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: categoryColor.withOpacity(0.7),
+              border: index > 0 ? const Border(left: BorderSide(color: Colors.white, width: 1)) : null,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 아이콘 (공간이 충분한 경우)
+                  if (count <= 3) ...[
+                    Icon(
+                      _getCategoryIcon(categoryName, categoryIcon),
+                      color: Colors.white,
+                      size: count <= 2 ? 16 : 12,
+                    ),
+                    const SizedBox(height: 2),
+                  ],
+                  // 카테고리 이름 (축약)
+                  Text(
+                    count <= 2 ? categoryName : categoryName.substring(0, 1),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: count <= 2 ? 9 : 8,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    maxLines: count <= 2 ? 2 : 1,
+                  ),
+                  // 닉네임 (공간이 충분한 경우만)
+                  if (count <= 2 && nickname.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      nickname.length > 3 ? '${nickname.substring(0, 3)}.' : nickname,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 7,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -325,90 +620,8 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
 
                                     // 각 요일별 셀
                                     ...List.generate(7, (dayIndex) {
-                                      // 해당 시간과 요일에 맞는 예약들 찾기
-                                      final matchingReservations = allReservations.where((r) {
-                                        final dayOfWeek = r['dayOfWeek'];
-                                        final startHour = r['startHour'];
-                                        final endHour = r['endHour'];
-
-                                        if (dayOfWeek == null || startHour == null || endHour == null) {
-                                          return false;
-                                        }
-
-                                        int? dayOfWeekInt;
-                                        int? startHourInt;
-                                        int? endHourInt;
-
-                                        // 안전한 int 변환
-                                        if (dayOfWeek is int) {
-                                          dayOfWeekInt = dayOfWeek;
-                                        } else if (dayOfWeek is String) {
-                                          dayOfWeekInt = int.tryParse(dayOfWeek);
-                                        }
-
-                                        if (startHour is int) {
-                                          startHourInt = startHour;
-                                        } else if (startHour is String) {
-                                          startHourInt = int.tryParse(startHour);
-                                        }
-
-                                        if (endHour is int) {
-                                          endHourInt = endHour;
-                                        } else if (endHour is String) {
-                                          endHourInt = int.tryParse(endHour);
-                                        }
-
-                                        return dayOfWeekInt == dayIndex &&
-                                            startHourInt != null && startHourInt <= hour &&
-                                            endHourInt != null && endHourInt > hour;
-                                      }).toList();
-
                                       return Expanded(
-                                        child: GestureDetector(
-                                          onTap: matchingReservations.isNotEmpty
-                                              ? () => _showReservationDialog(matchingReservations.first)
-                                              : null,
-                                          child: Container(
-                                            height: 60,
-                                            margin: const EdgeInsets.all(1),
-                                            decoration: BoxDecoration(
-                                              color: matchingReservations.isNotEmpty
-                                                  ? () {
-                                                final category = matchingReservations.first['category'];
-                                                final categoryName = category?['name'] ?? '알 수 없음';
-                                                return _getCategoryColor(categoryName).withOpacity(0.7);
-                                              }()
-                                                  : Colors.grey[100],
-                                              border: Border.all(color: Colors.grey.shade300),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: matchingReservations.isNotEmpty
-                                                ? Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  _getCategoryIcon(
-                                                    matchingReservations.first['category']?['name'] ?? '알 수 없음',
-                                                    matchingReservations.first['category']?['icon'], // 아이콘 이름 추가
-                                                  ),
-                                                  color: Colors.white,
-                                                  size: 16,
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  matchingReservations.first['reservedBy']?['nickname']?.toString() ?? '',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 10,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            )
-                                                : null,
-                                          ),
-                                        ),
+                                        child: _buildTimeSlotCell(hour, dayIndex, allReservations),
                                       );
                                     }),
                                   ],

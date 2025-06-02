@@ -1012,18 +1012,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            SizedBox(
-                              width: 65,
-                              child: Text(
-                                member['nickname']?.toString() ?? '멤버',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isCurrentUser ? const Color(0xFFFA2E55) : Colors.grey[700],
-                                  fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
+                            Flexible(
+                              child: SizedBox(
+                                width: 65,
+                                child: Text(
+                                  member['nickname']?.toString() ?? '멤버',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isCurrentUser ? const Color(0xFFFA2E55) : Colors.grey[700],
+                                    fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
                               ),
                             ),
                           ],
