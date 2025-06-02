@@ -325,6 +325,54 @@ const roomService = {
     return members;
   },
 
+  /**
+   * 방장 위임
+   * @param {string} roomId - 방 ID
+   * @param {string} currentOwnerId - 현재 방장 ID
+   * @param {string} newOwnerId - 새로운 방장 ID
+   * @returns {Promise<void>}
+   */
+  async transferOwnership(roomId, currentOwnerId, newOwnerId) {
+    try {
+      // 현재 방장인지 확인
+      const room = await Room.findOne({ _id: roomId, ownerId: currentOwnerId });
+      if (!room) {
+        throw new Error('방장만 방장을 위임할 수 있습니다.');
+      }
+
+      // 새로운 방장이 방 멤버인지 확인
+      const newOwnerMember = await RoomMember.findOne({
+        roomId,
+        userId: newOwnerId
+      });
+      if (!newOwnerMember) {
+        throw new Error('새로운 방장은 해당 방의 멤버여야 합니다.');
+      }
+
+      // 자기 자신에게 위임하는 경우 방지
+      if (currentOwnerId === newOwnerId) {
+        throw new Error('자기 자신에게는 방장을 위임할 수 없습니다.');
+      }
+
+      // Room 업데이트
+      room.ownerId = newOwnerId;
+      await room.save();
+
+      // 기존 방장의 isOwner를 false로 변경
+      await RoomMember.findOneAndUpdate(
+        { roomId, userId: currentOwnerId },
+        { isOwner: false }
+      );
+
+      // 새로운 방장의 isOwner를 true로 변경
+      newOwnerMember.isOwner = true;
+      await newOwnerMember.save();
+
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async kickMember(roomId, userId, ownerId) {
     // 1. 방장 본인은 내보낼 수 없음
     const room = await Room.findById(roomId);

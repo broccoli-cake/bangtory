@@ -276,6 +276,38 @@ const roomController = {
     }
   },
 
+/**
+   * 방장 위임 컨트롤러
+   * @route PATCH /rooms/:roomId/transfer-ownership
+   * @description 방장이 다른 멤버에게 방장을 위임합니다.
+   * @param {string} roomId - 방 ID
+   * @param {string} newOwnerId - 새로운 방장 ID
+   * @returns {Object} 위임 결과
+   */
+  async transferOwnership(req, res) {
+    try {
+      const { roomId } = req.params;
+      const { newOwnerId } = req.body;
+
+      if (!newOwnerId) {
+        return res.status(400).json(
+          createResponse(400, '새로운 방장 ID가 필요합니다.')
+        );
+      }
+
+      await roomService.transferOwnership(roomId, req.user._id, newOwnerId);
+
+      return res.status(200).json(
+        createResponse(200, '방장 위임이 완료되었습니다.')
+      );
+    } catch (error) {
+      console.error('방장 위임 중 에러:', error);
+      return res.status(400).json(
+        createResponse(400, error.message)
+      );
+    }
+  },
+
   /**
    * 방 멤버 내보내기(추방)
    * @route DELETE /rooms/:roomId/members/:userId

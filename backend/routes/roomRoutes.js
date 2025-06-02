@@ -33,6 +33,9 @@ router.delete('/me', simpleAuth, roomController.leaveRoom);
 // [PATCH] /rooms/:roomId - 방 정보 수정 (방장만)
 router.patch('/:roomId', simpleAuth, isRoomOwner, roomController.updateRoom);
 
+// [PATCH] /rooms/:roomId/transfer-ownership - 방장 위임 (방장만)
+router.patch('/:roomId/transfer-ownership', simpleAuth, isRoomOwner, roomController.transferOwnership);
+
 // [DELETE] /rooms/:roomId/members/:userId - 방 멤버 내보내기 (방장만)
 router.delete('/:roomId/members/:userId', simpleAuth, isRoomOwner, roomController.kickMember);
 
