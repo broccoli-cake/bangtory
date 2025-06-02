@@ -13,7 +13,7 @@ const choreScheduleSchema = new mongoose.Schema({
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'RoomMember', // User 대신 RoomMember 참조
     required: true
   },
   date: {
@@ -41,4 +41,4 @@ choreScheduleSchema.index({ date: 1, room: 1 });
 
 const ChoreSchedule = mongoose.model('ChoreSchedule', choreScheduleSchema);
 
-module.exports = ChoreSchedule; 
+module.exports = ChoreSchedule;

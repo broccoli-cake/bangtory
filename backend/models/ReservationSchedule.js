@@ -14,7 +14,7 @@ const reservationScheduleSchema = new mongoose.Schema({
   },
   reservedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'RoomMember', // User 대신 RoomMember 참조
     required: true
   },
   // 요일 (0: 일요일, 1: 월요일, ..., 6: 토요일) - 방문객이 아닌 경우만 사용
@@ -61,21 +61,21 @@ const reservationScheduleSchema = new mongoose.Schema({
 });
 
 // 인덱스 설정
-reservationScheduleSchema.index({ 
-  room: 1, 
-  category: 1, 
+reservationScheduleSchema.index({
+  room: 1,
+  category: 1,
   dayOfWeek: 1,
   weekStartDate: 1,
-  startHour: 1, 
-  endHour: 1 
+  startHour: 1,
+  endHour: 1
 });
 
-reservationScheduleSchema.index({ 
-  room: 1, 
-  category: 1, 
+reservationScheduleSchema.index({
+  room: 1,
+  category: 1,
   specificDate: 1,
-  startHour: 1, 
-  endHour: 1 
+  startHour: 1,
+  endHour: 1
 });
 
 // 예약 시간 유효성 검사
@@ -83,7 +83,7 @@ reservationScheduleSchema.pre('save', function(next) {
   if (this.startHour >= this.endHour) {
     return next(new Error('시작 시간은 종료 시간보다 빨라야 합니다.'));
   }
-  
+
   next();
 });
 
@@ -138,8 +138,27 @@ reservationScheduleSchema.methods.createNextWeekReservation = async function() {
     return existingReservation;
   }
 
-  // 새로운 다음 주 예약 생성
-  const nextWeekReservation = new this.constructor({
+  // 시간 겹침 확인
+  const conflictingReservation = await this.constructor.findOne({
+    room: this.room,
+    category: this.category,
+    dayOfWeek: this.dayOfWeek,
+    weekStartDate: nextWeekStart,
+    status: 'approved',
+    $or: [
+      {
+        startHour: { $lt: this.endHour },
+        endHour: { $gt: this.startHour }
+      }
+    ]
+  });
+
+  if (conflictingReservation) {
+    return null; // 겹치는 예약이 있으면 생성하지 않음
+  }
+
+  // 새로운 반복 예약 생성
+  const recurringReservation = new this.constructor({
     room: this.room,
     category: this.category,
     reservedBy: this.reservedBy,
@@ -148,10 +167,10 @@ reservationScheduleSchema.methods.createNextWeekReservation = async function() {
     endHour: this.endHour,
     weekStartDate: nextWeekStart,
     isRecurring: true,
-    status: 'approved' // 반복 예약은 자동으로 승인
+    status: 'approved'
   });
 
-  return await nextWeekReservation.save();
+  return await recurringReservation.save();
 };
 
 const ReservationSchedule = mongoose.model('ReservationSchedule', reservationScheduleSchema);

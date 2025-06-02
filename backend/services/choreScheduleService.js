@@ -8,19 +8,28 @@ const choreScheduleService = {
    * 특정 방의 일정 목록 조회
    */
   async getSchedules(roomId, startDate, endDate, categoryId) {
-  const query = {
-    room: roomId,
-    date: {
-      $gte: startDate,
-      $lte: endDate
-    }
-  };
+    const query = {
+      room: roomId,
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    };
+
     if (categoryId) {
       query.category = categoryId;
     }
+
     const schedules = await ChoreSchedule.find(query)
-      .populate('category', 'name icon color')
-      .populate('assignedTo', 'nickname profileImageUrl')
+      .populate('category', 'name icon type')
+      .populate({
+        path: 'assignedTo',
+        select: 'nickname profileImageUrl userId',
+        populate: {
+          path: 'userId',
+          select: 'name'
+        }
+      })
       .sort({ date: 1 });
 
     return schedules;
@@ -48,20 +57,34 @@ const choreScheduleService = {
       throw new ChoreError('방 멤버만 일정을 생성할 수 있습니다.', 403);
     }
 
-    // 담당자가 방 멤버인지 확인
-    const assignedMember = await RoomMember.findOne({
-      roomId: room._id,
-      userId: scheduleData.assignedTo
+    // 담당자 RoomMember 찾기 - 수정된 부분
+    let assignedMember;
+
+    // assignedTo가 RoomMember의 _id인지 userId인지 확인
+    assignedMember = await RoomMember.findOne({
+      $and: [
+        { roomId: room._id },
+        {
+          $or: [
+            { _id: scheduleData.assignedTo },
+            { userId: scheduleData.assignedTo }
+          ]
+        }
+      ]
     });
-    
+
     if (!assignedMember) {
       throw new ChoreError('담당자는 방 멤버여야 합니다.', 400);
     }
 
     const schedule = new ChoreSchedule({
-      ...scheduleData,
+      room: scheduleData.room,
+      category: scheduleData.category,
+      assignedTo: assignedMember._id, // RoomMember의 _id 사용
+      date: scheduleData.date,
       createdBy: userId
     });
+
     return await schedule.save();
   },
 
@@ -70,7 +93,7 @@ const choreScheduleService = {
    */
   async completeSchedule(scheduleId, userId) {
     const schedule = await ChoreSchedule.findById(scheduleId);
-    
+
     if (!schedule) {
       throw new ChoreError('일정을 찾을 수 없습니다.', 404);
     }
@@ -95,7 +118,7 @@ const choreScheduleService = {
    */
   async deleteSchedule(scheduleId, userId) {
     const schedule = await ChoreSchedule.findById(scheduleId);
-    
+
     if (!schedule) {
       throw new ChoreError('일정을 찾을 수 없습니다.', 404);
     }
@@ -114,4 +137,4 @@ const choreScheduleService = {
   }
 };
 
-module.exports = choreScheduleService; 
+module.exports = choreScheduleService;
