@@ -90,22 +90,33 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
     }
   }
 
-  Future<void> _completeDuty(Map<String, dynamic> schedule) async {
+  // 완료/완료 해제 토글 함수 (수정됨)
+  Future<void> _toggleCompleteDuty(Map<String, dynamic> schedule) async {
     final appState = Provider.of<AppState>(context, listen: false);
+    final isCompleted = schedule['isCompleted'] ?? false;
 
     try {
-      await appState.completeChoreSchedule(schedule['_id']);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('일정이 완료되었습니다.')),
-      );
+      if (isCompleted) {
+        // 완료 해제
+        await appState.uncompleteChoreSchedule(schedule['_id']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('일정 완료가 해제되었습니다.')),
+        );
+      } else {
+        // 완료 처리
+        await appState.completeChoreSchedule(schedule['_id']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('일정이 완료되었습니다.')),
+        );
+      }
 
       // 데이터 새로고침
       await _loadData();
 
     } catch (e) {
+      final action = isCompleted ? '완료 해제' : '완료 처리';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정 완료 실패: $e')),
+        SnackBar(content: Text('일정 $action 실패: $e')),
       );
     }
   }
@@ -163,12 +174,14 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // 완료/완료 해제 토글 버튼 (수정됨)
                               IconButton(
                                 icon: Icon(
                                   isCompleted ? Icons.check_circle : Icons.check_circle_outline,
                                   color: isCompleted ? Colors.green : Colors.grey,
                                 ),
-                                onPressed: isCompleted ? null : () => _completeDuty(schedule),
+                                onPressed: () => _toggleCompleteDuty(schedule),
+                                tooltip: isCompleted ? '완료 해제' : '완료 처리',
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),

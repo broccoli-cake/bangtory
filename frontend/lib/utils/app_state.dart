@@ -391,6 +391,21 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> uncompleteChoreSchedule(String scheduleId) async {
+    try {
+      final updatedSchedule = await _apiService.uncompleteChoreSchedule(scheduleId);
+
+      final index = _choreSchedules.indexWhere((schedule) => schedule['_id'] == scheduleId);
+      if (index != -1) {
+        _choreSchedules[index] = updatedSchedule;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Uncomplete chore schedule error: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deleteChoreSchedule(String scheduleId) async {
     try {
       await _apiService.deleteChoreSchedule(scheduleId);

@@ -464,6 +464,24 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> uncompleteChoreSchedule(String scheduleId) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/chores/schedules/$scheduleId/uncomplete'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['schedule'];
+      } else {
+        throw Exception('일정 완료 해제 실패: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('일정 완료 해제 중 오류 발생: $e');
+    }
+  }
+
   Future<void> deleteChoreSchedule(String scheduleId) async {
     try {
       final response = await http.delete(

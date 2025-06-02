@@ -696,8 +696,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          if (type == 'chore' && !isCompleted)
-            IconButton(
+          // 홈 화면에서는 완료만 가능, 완료된 일정은 체크 아이콘만 표시 (수정됨)
+          if (type == 'chore')
+            isCompleted
+                ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                : IconButton(
               icon: const Icon(Icons.check_circle_outline, color: Colors.green),
               onPressed: () async {
                 final appState = Provider.of<AppState>(context, listen: false);

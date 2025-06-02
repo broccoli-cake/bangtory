@@ -23,13 +23,14 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
 
   // 일반 예약용
   String selectedDay = '월';
-  TimeOfDay? startTime;
-  TimeOfDay? endTime;
+  int? startHour;
+  int? endHour;
   bool repeatWeekly = false;
 
   // 방문객 예약용
   DateTime selectedDate = DateTime.now();
-  TimeOfDay selectedTime = TimeOfDay.now();
+  int? visitorStartHour;
+  int? visitorEndHour;
 
   @override
   void initState() {
@@ -58,20 +59,32 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
     }
   }
 
-  void _selectTime(bool isStart) async {
-    TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
+  // 시간 드롭다운 빌더
+  Widget _buildHourDropdown({
+    required String label,
+    required int? selectedValue,
+    required ValueChanged<int?> onChanged,
+    int startRange = 0,
+    int endRange = 23,
+  }) {
+    return Row(
+      children: [
+        Text(label),
+        const SizedBox(width: 8),
+        DropdownButton<int>(
+          value: selectedValue,
+          hint: const Text('선택'),
+          items: List.generate(endRange - startRange + 1, (index) {
+            final hour = startRange + index;
+            return DropdownMenuItem<int>(
+              value: hour,
+              child: Text('${hour.toString().padLeft(2, '0')}:00'),
+            );
+          }),
+          onChanged: onChanged,
+        ),
+      ],
     );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          startTime = picked;
-        } else {
-          endTime = picked;
-        }
-      });
-    }
   }
 
   Future<void> _addReservation() async {
@@ -79,7 +92,22 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
 
     try {
       if (isVisitorCategory) {
-        // 방문객 예약 - 날짜와 시간을 정확히 조합
+        // 방문객 예약 - 시작/종료 시간 검증
+        if (visitorStartHour == null || visitorEndHour == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('시작 시간과 종료 시간을 모두 선택해주세요.')),
+          );
+          return;
+        }
+
+        if (visitorStartHour! >= visitorEndHour!) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('시작 시간은 종료 시간보다 빨라야 합니다.')),
+          );
+          return;
+        }
+
+        // 방문객 예약 - 날짜 정확히 조합
         final reservationDate = DateTime(
           selectedDate.year,
           selectedDate.month,
@@ -88,15 +116,28 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
 
         await appState.createReservationSchedule(
           categoryId: widget.category['_id'],
-          specificDate: reservationDate, // 날짜만 전달
-          startHour: selectedTime.hour,  // 시간은 별도로 전달
-          endHour: selectedTime.hour + 1,
+          specificDate: reservationDate,
+          startHour: visitorStartHour!,
+          endHour: visitorEndHour!,
         );
+
+        // 성공 후 필드 초기화
+        setState(() {
+          visitorStartHour = null;
+          visitorEndHour = null;
+        });
       } else {
-        // 일반 예약
-        if (startTime == null || endTime == null) {
+        // 일반 예약 - 시작/종료 시간 검증
+        if (startHour == null || endHour == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('시간을 모두 선택해주세요.')),
+            const SnackBar(content: Text('시작 시간과 종료 시간을 모두 선택해주세요.')),
+          );
+          return;
+        }
+
+        if (startHour! >= endHour!) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('시작 시간은 종료 시간보다 빨라야 합니다.')),
           );
           return;
         }
@@ -106,14 +147,15 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
         await appState.createReservationSchedule(
           categoryId: widget.category['_id'],
           dayOfWeek: dayOfWeek,
-          startHour: startTime!.hour,
-          endHour: endTime!.hour,
+          startHour: startHour!,
+          endHour: endHour!,
           isRecurring: repeatWeekly,
         );
 
+        // 성공 후 필드 초기화
         setState(() {
-          startTime = null;
-          endTime = null;
+          startHour = null;
+          endHour = null;
           repeatWeekly = false;
         });
       }
@@ -280,6 +322,8 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
             final nickname = reservedBy['nickname']?.toString() ?? '알 수 없음';
             final status = reservation['status'] ?? 'approved';
             final approvalStatus = reservation['approvalStatus'] ?? 'approved';
+            final startHour = reservation['startHour'] ?? 0;
+            final endHour = reservation['endHour'] ?? 0;
 
             // 승인 정보
             final currentApprovals = reservation['currentApprovals'] ?? 0;
@@ -333,7 +377,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                 side: BorderSide(color: borderColor, width: 1),
               ),
               child: ListTile(
-                title: Text("${_formatDateTime(specificDate)} - $nickname$statusText",
+                title: Text("${_formatDate(specificDate)} ${startHour.toString().padLeft(2, '0')}:00-${endHour.toString().padLeft(2, '0')}:00 - $nickname$statusText",
                   style: TextStyle(
                     fontWeight: status == 'pending' ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -519,7 +563,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('예약자: $nickname'),
-            Text('시간: $startHour:00 ~ $endHour:00'),
+            Text('시간: ${startHour.padLeft(2, '0')}:00 ~ ${endHour.padLeft(2, '0')}:00'),
             Text('반복: ${isRecurring ? "매주" : "일회성"}'),
           ],
         ),
@@ -566,28 +610,32 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
           ],
         ),
 
-        // 시간 선택
-        Row(
-          children: [
-            const Text("시간 선택: "),
-            IconButton(
-              onPressed: () async {
-                TimeOfDay? pickedTime = await showTimePicker(
-                  context: context,
-                  initialTime: selectedTime,
-                );
-                if (pickedTime != null) {
-                  setState(() {
-                    selectedTime = pickedTime;
-                  });
-                }
-              },
-              icon: const Text('🍅', style: TextStyle(fontSize: 28)),
-              tooltip: '시간 선택',
-            ),
-            const SizedBox(width: 8),
-            Text(selectedTime.format(context)),
-          ],
+        const SizedBox(height: 8),
+
+        // 시작 시간 선택
+        _buildHourDropdown(
+          label: "시작 시간: ",
+          selectedValue: visitorStartHour,
+          onChanged: (value) {
+            setState(() {
+              visitorStartHour = value;
+            });
+          },
+        ),
+
+        const SizedBox(height: 8),
+
+        // 종료 시간 선택
+        _buildHourDropdown(
+          label: "종료 시간: ",
+          selectedValue: visitorEndHour,
+          onChanged: (value) {
+            setState(() {
+              visitorEndHour = value;
+            });
+          },
+          startRange: 1,
+          endRange: 24,
         ),
       ],
     );
@@ -634,21 +682,33 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
         ),
         const SizedBox(height: 8),
 
-        // 시간 선택
-        Row(
-          children: [
-            const Text("시간: "),
-            TextButton(
-              onPressed: () => _selectTime(true),
-              child: Text(startTime == null ? "--:--" : startTime!.format(context)),
-            ),
-            const Text(" ~ "),
-            TextButton(
-              onPressed: () => _selectTime(false),
-              child: Text(endTime == null ? "--:--" : endTime!.format(context)),
-            ),
-          ],
+        // 시작 시간 선택
+        _buildHourDropdown(
+          label: "시작 시간: ",
+          selectedValue: startHour,
+          onChanged: (value) {
+            setState(() {
+              startHour = value;
+            });
+          },
         ),
+
+        const SizedBox(height: 8),
+
+        // 종료 시간 선택
+        _buildHourDropdown(
+          label: "종료 시간: ",
+          selectedValue: endHour,
+          onChanged: (value) {
+            setState(() {
+              endHour = value;
+            });
+          },
+          startRange: 1,
+          endRange: 24,
+        ),
+
+        const SizedBox(height: 8),
 
         // 반복 버튼
         Row(
