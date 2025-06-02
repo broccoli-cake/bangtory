@@ -197,30 +197,6 @@ const roomController = {
   },
 
   /**
-   * 방 나가기 컨트롤러
-   * @route DELETE /rooms/me
-   * @description 방을 나갑니다. 방장인 경우 새로운 방장을 지정해야 합니다.
-   * @param {string} roomId - 방 ID
-   * @param {string} newOwnerId - 새로운 방장 ID (방장인 경우 필수)
-   * @returns {Object} 나가기 결과
-   */
-  async leaveRoom(req, res) {
-    try {
-      const { roomId, newOwnerId } = req.body;
-      await roomService.leaveRoom(roomId, req.user._id, newOwnerId);
-
-      return res.status(200).json(
-        createResponse(200, '방 나가기 완료')
-      );
-    } catch (error) {
-      console.error('방 나가기 중 에러:', error);
-      return res.status(400).json(
-        createResponse(400, error.message)
-      );
-    }
-  },
-
-  /**
    * 방 정보 수정 컨트롤러
    * @route PATCH /rooms/:roomId
    * @description 방장이 방 정보를 수정합니다.
@@ -277,6 +253,27 @@ const roomController = {
   },
 
 /**
+   * 방 나가기 컨트롤러
+   * @route DELETE /rooms/leave
+   * @description 사용자가 현재 참여 중인 방을 나갑니다.
+   * @returns {Object} 나가기 결과
+   */
+  async leaveRoom(req, res) {
+    try {
+      await roomService.leaveRoom(req.user._id);
+
+      return res.status(200).json(
+        createResponse(200, '방을 성공적으로 나갔습니다.')
+      );
+    } catch (error) {
+      console.error('방 나가기 중 에러:', error);
+      return res.status(400).json(
+        createResponse(400, error.message)
+      );
+    }
+  },
+
+  /**
    * 방장 위임 컨트롤러
    * @route PATCH /rooms/:roomId/transfer-ownership
    * @description 방장이 다른 멤버에게 방장을 위임합니다.

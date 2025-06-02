@@ -33,6 +33,9 @@ router.delete('/me', simpleAuth, roomController.leaveRoom);
 // [PATCH] /rooms/:roomId - 방 정보 수정 (방장만)
 router.patch('/:roomId', simpleAuth, isRoomOwner, roomController.updateRoom);
 
+// [DELETE] /rooms/leave - 방 나가기 (일반 사용자)
+router.delete('/leave', simpleAuth, roomController.leaveRoom);
+
 // [PATCH] /rooms/:roomId/transfer-ownership - 방장 위임 (방장만)
 router.patch('/:roomId/transfer-ownership', simpleAuth, isRoomOwner, roomController.transferOwnership);
 
