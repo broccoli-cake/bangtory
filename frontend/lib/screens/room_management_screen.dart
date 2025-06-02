@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
+import './onboarding_screen.dart';
 
 class RoomManagementScreen extends StatefulWidget {
   const RoomManagementScreen({super.key});
@@ -817,10 +818,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         ),
       );
 
-      // 방을 나간 후 온보딩 화면으로 이동
-      Navigator.pushNamedAndRemoveUntil(
+      // 방을 나간 후 방 만들기/들어가기 화면으로 이동
+      Navigator.pushAndRemoveUntil(
         context,
-        '/',
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
             (route) => false,
       );
     } catch (e) {

@@ -293,23 +293,11 @@ class ApiService {
     }
   }
 
-  Future<void> leaveRoom({
-    required String roomId,
-    String? newOwnerId,
-  }) async {
+  Future<void> leaveRoom() async {
     try {
-      final body = <String, dynamic>{
-        'roomId': roomId,
-      };
-
-      if (newOwnerId != null) {
-        body['newOwnerId'] = newOwnerId;
-      }
-
       final response = await http.delete(
-        Uri.parse('$baseUrl/rooms/me'),
+        Uri.parse('$baseUrl/rooms/leave'),
         headers: _headers,
-        body: json.encode(body),
       );
 
       if (response.statusCode != 200) {

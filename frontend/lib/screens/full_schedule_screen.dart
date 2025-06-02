@@ -58,7 +58,19 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
       '세탁기': Colors.blueAccent,
       '주방': Colors.greenAccent,
       '거실': Colors.orangeAccent,
-      '발코니': Colors.purpleAccent,
+      '방': Colors.purpleAccent,
+      '화장실': Colors.pinkAccent,
+      '발코니': Colors.tealAccent,
+      '정원': Colors.lightGreenAccent,
+      '차고': Colors.brown,
+      '운동': Colors.indigoAccent,
+      '공부': Colors.cyanAccent,
+      '회의': Colors.grey,
+      '음식': Colors.deepOrangeAccent,
+      '쇼핑': Colors.amberAccent,
+      '의료': Colors.lightBlueAccent,
+      '여행': Colors.deepPurpleAccent,
+      '업무': Colors.blueGrey,
     };
 
     return colorMap[categoryName] ?? Colors.grey;

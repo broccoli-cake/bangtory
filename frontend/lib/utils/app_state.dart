@@ -204,17 +204,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> leaveRoom({String? newOwnerId}) async {
-    if (_currentRoom == null) {
-      throw Exception('현재 방 정보가 없습니다.');
-    }
-
+  Future<void> leaveRoom() async {
     setLoading(true);
     try {
-      await _apiService.leaveRoom(
-        roomId: _currentRoom!.roomId,
-        newOwnerId: newOwnerId,
-      );
+      await _apiService.leaveRoom();
 
       // 방을 나간 후 모든 상태 초기화
       _currentRoom = null;
