@@ -131,6 +131,111 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> updateRoom({
+    String? roomName,
+    String? address,
+  }) async {
+    if (_currentRoom == null) {
+      throw Exception('현재 방 정보가 없습니다.');
+    }
+
+    setLoading(true);
+    try {
+      _currentRoom = await _apiService.updateRoom(
+        roomId: _currentRoom!.roomId,
+        roomName: roomName,
+        address: address,
+      );
+      notifyListeners();
+    } catch (e) {
+      print('Update room error: $e');
+      rethrow;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<void> transferOwnership(String newOwnerId) async {
+    if (_currentRoom == null) {
+      throw Exception('현재 방 정보가 없습니다.');
+    }
+
+    setLoading(true);
+    try {
+      await _apiService.transferOwnership(
+        roomId: _currentRoom!.roomId,
+        newOwnerId: newOwnerId,
+      );
+
+      // 방장이 바뀌었으므로 현재 방 정보와 멤버 정보를 다시 로드
+      await loadRoom();
+      await loadRoomMembers();
+
+      notifyListeners();
+    } catch (e) {
+      print('Transfer ownership error: $e');
+      rethrow;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<void> kickMember(String userId) async {
+    if (_currentRoom == null) {
+      throw Exception('현재 방 정보가 없습니다.');
+    }
+
+    setLoading(true);
+    try {
+      await _apiService.kickMember(
+        roomId: _currentRoom!.roomId,
+        userId: userId,
+      );
+
+      // 멤버 목록 다시 로드
+      await loadRoomMembers();
+
+      notifyListeners();
+    } catch (e) {
+      print('Kick member error: $e');
+      rethrow;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<void> leaveRoom({String? newOwnerId}) async {
+    if (_currentRoom == null) {
+      throw Exception('현재 방 정보가 없습니다.');
+    }
+
+    setLoading(true);
+    try {
+      await _apiService.leaveRoom(
+        roomId: _currentRoom!.roomId,
+        newOwnerId: newOwnerId,
+      );
+
+      // 방을 나간 후 모든 상태 초기화
+      _currentRoom = null;
+      _roomMembers = [];
+      _choreCategories = [];
+      _reservationCategories = [];
+      _choreSchedules = [];
+      _reservationSchedules = [];
+      _visitorReservations = [];
+      _pendingReservations = [];
+      _categoryReservations = {};
+
+      notifyListeners();
+    } catch (e) {
+      print('Leave room error: $e');
+      rethrow;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   Future<void> joinRoom(String inviteCode) async {
     setLoading(true);
     try {

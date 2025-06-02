@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
 import 'package:frontend/screens/onboarding_screen.dart';
 import '../screens/profile_management_screen.dart'; // 추가
+import '../screens/room_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
