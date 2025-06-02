@@ -105,7 +105,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 50),
         // 프로필 이미지 선택 그리드
         GridView.builder(
           shrinkWrap: true,
@@ -113,8 +113,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             childAspectRatio: 1,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
           itemCount: _profileImages.length,
           itemBuilder: (context, index) {
@@ -140,7 +140,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   backgroundColor: _getProfileColor(imageUrl),
                   child: const Icon(
                     Icons.person,
-                    size: 40,
+                    size: 60,
                     color: Colors.white,
                   ),
                 ),

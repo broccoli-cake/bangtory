@@ -16,9 +16,9 @@ class HomeScreen extends StatefulWidget {
   final String userName;
 
   const HomeScreen({
-    super.key,
-    required this.roomName,
-    required this.userName,
+  super.key,
+  required this.roomName,
+  required this.userName,
   });
 
   @override
@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCategories();
     _loadRoomMembers();
     _loadUserProfile(); // 프로필 정보 로드 추가
+    _loadTodaySchedules(); // 오늘 일정 로드 추가
   }
 
   Future<void> _loadCategories() async {
@@ -52,6 +53,34 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUserProfile() async {
     final appState = Provider.of<AppState>(context, listen: false);
     await appState.loadUserProfile();
+  }
+
+  // 오늘 일정 로드 추가
+  Future<void> _loadTodaySchedules() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    // 오늘 집안일 일정 로드
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+
+    await appState.loadChoreSchedules(
+      startDate: startOfDay,
+      endDate: endOfDay,
+    );
+
+    // 현재 주 예약 일정 로드 (오늘 예약 포함)
+    await appState.loadReservationSchedules();
+
+    // 모든 카테고리의 현재 주 예약 로드
+    for (final category in appState.reservationCategories) {
+      if (category['isVisitor'] != true) {
+        await appState.loadCategoryReservations(category['_id']);
+      }
+    }
+
+    // 방문객 예약도 로드
+    await appState.loadVisitorReservations();
   }
 
   // 카테고리별 아이콘 매핑 (이모지 → 기본 아이콘)
@@ -376,7 +405,230 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 프로필 이미지별 색상 매핑 (추가)
+  // 오늘의 할 일 가져오기 (집안일 + 예약)
+  List<Map<String, dynamic>> _getTodayTasks() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final today = DateTime.now();
+    final todayWeekday = today.weekday % 7; // 일요일=0, 월요일=1, ..., 토요일=6
+    final currentUserId = appState.currentUser?.id;
+
+    List<Map<String, dynamic>> todayTasks = [];
+
+    if (currentUserId == null) return todayTasks;
+
+    // 1. 오늘의 집안일 일정 (내가 담당한 것만)
+    final todayChores = appState.choreSchedules.where((schedule) {
+      final scheduleDate = DateTime.tryParse(schedule['date']?.toString() ?? '');
+      if (scheduleDate == null) return false;
+
+      final isSameDay = scheduleDate.year == today.year &&
+          scheduleDate.month == today.month &&
+          scheduleDate.day == today.day;
+
+      final isMyTask = schedule['assignedTo']?['userId']?.toString() == currentUserId;
+
+      return isSameDay && isMyTask;
+    }).map((schedule) => {
+      ...schedule,
+      'type': 'chore',
+      'time': '하루종일',
+      'title': schedule['category']?['name'] ?? '집안일',
+      'categoryIcon': schedule['category']?['icon'],
+    });
+
+    // 2. 오늘의 예약 일정 (내가 예약한 것만)
+    List<Map<String, dynamic>> todayReservations = [];
+
+    // 일반 예약 (요일 기반)
+    for (final categoryId in appState.categoryReservations.keys) {
+      final reservations = appState.categoryReservations[categoryId] ?? [];
+
+      final myTodayReservations = reservations.where((reservation) {
+        final dayOfWeek = reservation['dayOfWeek'];
+        final reservedBy = reservation['reservedBy']?['userId']?.toString();
+
+        // 요일이 일치하고 내가 예약한 것만
+        return dayOfWeek == todayWeekday && reservedBy == currentUserId;
+      }).map((reservation) => {
+        ...reservation,
+        'type': 'reservation',
+        'time': '${reservation['startHour'] ?? 0}:00 - ${reservation['endHour'] ?? 0}:00',
+        'title': reservation['category']?['name'] ?? '예약',
+        'categoryIcon': reservation['category']?['icon'],
+      });
+
+      todayReservations.addAll(myTodayReservations);
+    }
+
+    // 방문객 예약 (특정 날짜 기반)
+    final myTodayVisitorReservations = appState.visitorReservations.where((reservation) {
+      if (reservation['specificDate'] == null) return false;
+
+      final reservationDate = DateTime.tryParse(reservation['specificDate'].toString());
+      if (reservationDate == null) return false;
+
+      final isSameDay = reservationDate.year == today.year &&
+          reservationDate.month == today.month &&
+          reservationDate.day == today.day;
+
+      final reservedBy = reservation['reservedBy']?['userId']?.toString();
+      final isMyReservation = reservedBy == currentUserId;
+
+      return isSameDay && isMyReservation;
+    }).map((reservation) => {
+      ...reservation,
+      'type': 'visitor',
+      'time': '${reservation['startHour'] ?? 0}:00 - ${reservation['endHour'] ?? 0}:00',
+      'title': reservation['category']?['name'] ?? '방문객',
+      'categoryIcon': reservation['category']?['icon'],
+    });
+
+    todayReservations.addAll(myTodayVisitorReservations);
+
+    // 모든 할 일 합치기
+    todayTasks.addAll(todayChores);
+    todayTasks.addAll(todayReservations);
+
+    // 시간순 정렬 (집안일은 맨 뒤로)
+    todayTasks.sort((a, b) {
+      if (a['type'] == 'chore' && b['type'] != 'chore') return 1;
+      if (b['type'] == 'chore' && a['type'] != 'chore') return -1;
+
+      if (a['type'] != 'chore' && b['type'] != 'chore') {
+        final aStartHour = a['startHour'] ?? 0;
+        final bStartHour = b['startHour'] ?? 0;
+        return aStartHour.compareTo(bStartHour);
+      }
+
+      return 0;
+    });
+
+    return todayTasks;
+  }
+
+  // 오늘 할 일 아이템 빌드
+  Widget _buildTodayTaskItem(Map<String, dynamic> task) {
+    final type = task['type'];
+    final title = task['title'];
+    final time = task['time'];
+    final categoryIcon = task['categoryIcon'];
+    final isCompleted = task['isCompleted'] == true;
+    final status = task['status'] ?? 'approved';
+
+    // 타입별 색상과 아이콘
+    Color color;
+    IconData icon;
+
+    if (type == 'chore') {
+      color = Colors.blue;
+      icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.cleaning_services;
+    } else if (type == 'visitor') {
+      color = Colors.purple;
+      icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.emoji_people;
+    } else {
+      color = Colors.green;
+      icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.event_available;
+    }
+
+    // 상태에 따른 색상 조정
+    if (type == 'chore' && isCompleted) {
+      color = Colors.grey;
+    } else if (type == 'visitor' && status == 'pending') {
+      color = Colors.orange;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: color.withOpacity(0.2),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        decoration: isCompleted ? TextDecoration.lineThrough : null,
+                        color: isCompleted ? Colors.grey : Colors.black87,
+                      ),
+                    ),
+                    if (type == 'chore' && isCompleted)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '완료',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
+                      ),
+                    if (type == 'visitor' && status == 'pending')
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '승인대기',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (type == 'chore' && !isCompleted)
+            IconButton(
+              icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+              onPressed: () async {
+                final appState = Provider.of<AppState>(context, listen: false);
+                try {
+                  await appState.completeChoreSchedule(task['_id']);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('일정이 완료되었습니다.')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('완료 처리 실패: $e')),
+                  );
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 프로필 이미지별 색상 매핑
   Color _getProfileColor(String? profileImageUrl) {
     switch (profileImageUrl) {
       case '/images/profile1.png':
@@ -395,6 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.grey[400]!;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -419,6 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
               await _loadCategories();
               await _loadRoomMembers();
               await _loadUserProfile();
+              await _loadTodaySchedules(); // 오늘 일정도 새로고침
             },
           ),
           IconButton(
@@ -469,6 +723,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 24),
+            // 오늘 할 일 섹션 - 수정된 부분
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -476,7 +731,65 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('오늘 할 일', style: TextStyle(color: Colors.grey)),
+              child: Consumer<AppState>(
+                builder: (context, appState, child) {
+                  final todayTasks = _getTodayTasks();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '오늘 할 일',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            '${todayTasks.length}개',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (todayTasks.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.event_available,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '오늘 할 일이 없습니다',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Column(
+                          children: todayTasks.map((task) => _buildTodayTaskItem(task)).toList(),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ],
         ),
