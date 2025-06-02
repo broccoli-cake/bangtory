@@ -7,7 +7,7 @@ import '../utils/icon_utils.dart';
 import 'dynamic_chore_screen.dart';
 import 'dynamic_reservation_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
-import 'package:frontend/settings/room/calendar.dart';
+import 'package:frontend/settings/room/calendar.dart' as calendar_room;
 import 'package:frontend/screens/chat_screen.dart';
 import 'package:frontend/screens/full_schedule_screen.dart';
 
@@ -684,7 +684,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (index == 0) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const CalendarScreen()),
+          MaterialPageRoute(builder: (_) => const calendar_room.CalendarScreen()),
         );
       } else if (index == 1) {
         Navigator.pushReplacement(

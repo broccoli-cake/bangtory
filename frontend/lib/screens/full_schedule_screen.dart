@@ -5,7 +5,7 @@ import '../utils/icon_utils.dart'; // 추가
 import '../settings/setting_home.dart';
 import '../screens/home_screen.dart';
 import '../screens/chat_screen.dart';
-import '../settings/room/calendar.dart';
+import '../settings/room/calendar.dart' as calendar_room;
 
 class FullScheduleScreen extends StatefulWidget {
   const FullScheduleScreen({super.key});
@@ -200,7 +200,7 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
         if (index == 0) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const CalendarScreen()),
+            MaterialPageRoute(builder: (_) => const calendar_room.CalendarScreen()),
           );
         } else if (index == 1) {
           // 현재 시간표 화면이므로 아무것도 하지 않음
@@ -210,7 +210,7 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
             MaterialPageRoute(
               builder: (_) => HomeScreen(
                 roomName: appState.currentRoom?.roomName ?? '방',
-                userName: appState.currentUser?.nickname ?? '사용자',
+                userName: appState.currentUser?.name ?? '사용자',
               ),
             ),
           );

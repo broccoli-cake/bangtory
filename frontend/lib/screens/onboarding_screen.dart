@@ -43,7 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // 사용자와 방 모두 있으면 홈 화면으로
         _navigateToScreen(HomeScreen(
           roomName: appState.currentRoom!.roomName,
-          userName: appState.currentUser!.nickname,
+          userName: appState.currentUser!.name, // nickname -> name으로 변경
         ));
       }
     } catch (e) {

@@ -41,7 +41,7 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
           MaterialPageRoute(
             builder: (context) => HomeScreen(
               roomName: appState.currentRoom?.roomName ?? '방',
-              userName: appState.currentUser?.nickname ?? '사용자',
+              userName: appState.currentUser?.name ?? '사용자', // nickname -> name으로 변경
             ),
           ),
               (route) => false, // 모든 이전 화면 제거

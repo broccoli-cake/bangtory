@@ -23,7 +23,7 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/users'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': name}),
+        body: json.encode({'name': name}), // name 필드로 전송
       );
 
       print('Create User Response: ${response.statusCode} - ${response.body}');

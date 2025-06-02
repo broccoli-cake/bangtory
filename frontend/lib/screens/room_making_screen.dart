@@ -46,7 +46,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
           MaterialPageRoute(
             builder: (context) => HomeScreen(
               roomName: roomName,
-              userName: appState.currentUser?.nickname ?? '사용자',
+              userName: appState.currentUser?.name ?? '사용자', // nickname -> name으로 변경
             ),
           ),
               (route) => false, // 모든 이전 화면 제거

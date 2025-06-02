@@ -191,7 +191,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             MaterialPageRoute(
               builder: (_) => HomeScreen(
                 roomName: appState.currentRoom?.roomName ?? '방',
-                userName: appState.currentUser?.nickname ?? '사용자',
+                userName: appState.currentUser?.name ?? '사용자',
               ),
             ),
           );
