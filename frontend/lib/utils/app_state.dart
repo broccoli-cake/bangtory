@@ -211,6 +211,7 @@ class AppState extends ChangeNotifier {
 
       // 방을 나간 후 모든 상태 초기화
       _currentRoom = null;
+      _currentUserProfile = null; // 프로필 정보도 초기화
       _roomMembers = [];
       _choreCategories = [];
       _reservationCategories = [];
@@ -671,8 +672,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // logout 메서드에 카테고리 데이터 정리 추가
+  // logout 메서드 수정 (완전한 초기화)
   Future<void> logout() async {
+    // 모든 상태 초기화
     _currentUser = null;
     _currentUserProfile = null;
     _currentRoom = null;
@@ -684,7 +686,14 @@ class AppState extends ChangeNotifier {
     _pendingReservations = [];
     _categoryReservations = {};
     _roomMembers = [];
+
+    // API 서비스의 사용자 ID도 초기화
+    _apiService.setUserId('');
+
+    // SharedPreferences에서 사용자 ID 제거
     await _clearUserId();
+
+    // 상태 변경 알림
     notifyListeners();
   }
 

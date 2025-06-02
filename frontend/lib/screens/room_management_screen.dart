@@ -346,6 +346,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
           final isOwner = appState.currentRoom!.isOwner;
           final currentUserId = appState.currentUser?.id ?? '';
+          final totalMembers = appState.roomMembers.length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -638,7 +639,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
                 const SizedBox(height: 24),
 
-                // 방 나가기 섹션 (새로 추가)
+                // 방 나가기 섹션 (수정됨)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -668,7 +669,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                       const SizedBox(height: 8),
                       Text(
                         isOwner
+                            ? totalMembers > 1
                             ? '⚠️ 방장은 다른 멤버에게 방장을 위임한 후 나갈 수 있습니다.'
+                            : '⚠️ 방장이 나가면 방이 삭제됩니다.'
                             : '방을 나가면 다시 초대 코드로만 들어올 수 있습니다.',
                         style: TextStyle(
                           fontSize: 14,
@@ -686,11 +689,15 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: isOwner ? null : () => _showLeaveRoomDialog(),
+                          onPressed: (isOwner && totalMembers > 1) ? null : () => _showLeaveRoomDialog(),
                           child: Text(
-                            isOwner ? '방장 위임 후 나가기 가능' : '방 나가기',
+                            isOwner && totalMembers > 1
+                                ? '방장 위임 후 나가기 가능'
+                                : isOwner
+                                ? '방 삭제하고 나가기'
+                                : '방 나가기',
                             style: TextStyle(
-                              color: isOwner ? Colors.grey[400] : Colors.white,
+                              color: (isOwner && totalMembers > 1) ? Colors.grey[400] : Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -775,15 +782,21 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   void _showLeaveRoomDialog() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final isOwner = appState.currentRoom?.isOwner ?? false;
+    final totalMembers = appState.roomMembers.length;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          '방 나가기',
-          style: TextStyle(color: Colors.red),
+        title: Text(
+          isOwner ? '방 삭제' : '방 나가기',
+          style: const TextStyle(color: Colors.red),
         ),
-        content: const Text(
-          '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
+        content: Text(
+          isOwner
+              ? '정말로 방을 삭제하시겠습니까?\n\n방장이 나가면 방이 완전히 삭제되며, 모든 데이터가 사라집니다.'
+              : '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
         ),
         actions: [
           TextButton(
@@ -798,7 +811,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               Navigator.pop(context);
               await _leaveRoom();
             },
-            child: const Text('나가기', style: TextStyle(color: Colors.white)),
+            child: Text(
+              isOwner ? '삭제' : '나가기',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -818,7 +834,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         ),
       );
 
-      // 방을 나간 후 방 만들기/들어가기 화면으로 이동
+      // 방을 나간 후 온보딩 화면으로 이동
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),

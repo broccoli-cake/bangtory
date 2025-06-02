@@ -17,8 +17,12 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.red,
         ),
-        home: OnboardingScreen(),
         debugShowCheckedModeBanner: false,
+        // home 대신 initialRoute와 routes 사용
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const OnboardingScreen(),
+        },
       ),
     );
   }

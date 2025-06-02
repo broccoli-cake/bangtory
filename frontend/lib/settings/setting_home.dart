@@ -39,19 +39,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               try {
                 await appState.logout();
 
-                // 온보딩 화면으로 이동
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/',
-                      (route) => false,
-                );
+                // 온보딩 화면으로 즉시 이동
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                        (route) => false, // 모든 이전 화면 제거
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('로그아웃 중 오류가 발생했습니다: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                // mounted 체크 추가
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('로그아웃 중 오류가 발생했습니다: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('확인', style: TextStyle(color: Colors.white)),
