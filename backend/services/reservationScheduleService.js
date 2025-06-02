@@ -103,7 +103,7 @@ const reservationScheduleService = {
   },
 
   /**
-   * 방문객 예약 조회
+   * 방문객 예약 조회 - 실시간 멤버 수 기반 승인 상태 계산
    */
   async getVisitorReservations(roomId) {
     const query = {
@@ -122,6 +122,8 @@ const reservationScheduleService = {
 
     const visitorReservations = schedules.filter(schedule => schedule.category);
     const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
+
+    // 실시간 멤버 수 조회
     const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
 
     const reservationsWithApproval = await Promise.all(
@@ -135,8 +137,12 @@ const reservationScheduleService = {
           }).populate('approvedBy.user', 'nickname');
 
           if (approvalInfo) {
+            // 실시간 멤버 수로 승인 정보 업데이트
+            approvalInfo.totalMembersCount = totalMembers;
+            await approvalInfo.save();
+
             const approvedCount = approvalInfo.approvedBy.length;
-            const requiredApprovals = totalMembers - 1;
+            const requiredApprovals = totalMembers - 1; // 예약자 제외
 
             if (approvedCount >= requiredApprovals) {
               approvalStatus = 'fully_approved';
@@ -165,7 +171,7 @@ const reservationScheduleService = {
   },
 
   /**
-   * 승인 대기 중인 예약 목록 조회
+   * 승인 대기 중인 예약 목록 조회 - 실시간 멤버 수 반영
    */
   async getPendingReservations(roomId, userId) {
     const pendingReservations = await ReservationSchedule.find({
@@ -187,11 +193,20 @@ const reservationScheduleService = {
     const visitorReservations = pendingReservations.filter(reservation => reservation.category);
     const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
 
+    // 실시간 멤버 수 조회
+    const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
+
     const reservationsWithApproval = await Promise.all(
       reservationsWithMemberInfo.map(async (reservation) => {
         const approval = await ReservationApproval.findOne({
           reservation: reservation._id
         }).populate('approvedBy.user', 'nickname');
+
+        // 승인 정보가 있으면 실시간 멤버 수로 업데이트
+        if (approval) {
+          approval.totalMembersCount = totalMembers;
+          await approval.save();
+        }
 
         const hasUserApproved = approval?.approvedBy.some(
           app => app.user._id.toString() === userId.toString()
@@ -200,7 +215,10 @@ const reservationScheduleService = {
         return {
           ...reservation,
           approval: approval || null,
-          hasUserApproved
+          hasUserApproved,
+          totalMembers,
+          requiredApprovals: totalMembers - 1,
+          currentApprovals: approval?.approvedBy.length || 0
         };
       })
     );
@@ -321,7 +339,7 @@ const reservationScheduleService = {
 
     const savedSchedule = await newSchedule.save();
 
-    // 방문객 예약인 경우 승인 정보 생성
+    // 방문객 예약인 경우 승인 정보 생성 (실시간 멤버 수 기반)
     if (category.isVisitor) {
       const totalMembers = await RoomMember.countDocuments({ roomId: room._id });
 
@@ -399,7 +417,7 @@ const reservationScheduleService = {
   },
 
   /**
-   * 예약 승인
+   * 예약 승인 - 실시간 멤버 수 기반 승인 처리
    */
   async approveReservation(reservationId, userId) {
     const reservation = await ReservationSchedule.findById(reservationId)
@@ -435,13 +453,18 @@ const reservationScheduleService = {
       reservation: reservationId
     });
 
+    // 실시간 멤버 수 조회
+    const totalMembers = await RoomMember.countDocuments({ roomId: reservation.room });
+
     if (!approval) {
-      const totalMembers = await RoomMember.countDocuments({ roomId: reservation.room });
       approval = await ReservationApproval.create({
         reservation: reservationId,
         totalMembersCount: totalMembers,
         approvedBy: []
       });
+    } else {
+      // 기존 승인 정보의 멤버 수 업데이트
+      approval.totalMembersCount = totalMembers;
     }
 
     // 이미 승인했는지 확인
@@ -455,7 +478,7 @@ const reservationScheduleService = {
 
     approval.approvedBy.push({ user: userId });
 
-    const requiredApprovals = approval.totalMembersCount - 1;
+    const requiredApprovals = totalMembers - 1; // 예약자 제외
     const currentApprovals = approval.approvedBy.length;
 
     if (currentApprovals >= requiredApprovals) {
@@ -491,7 +514,8 @@ const reservationScheduleService = {
       isFullyApproved: approval.isFullyApproved,
       currentApprovals,
       requiredApprovals,
-      remainingApprovals: requiredApprovals - currentApprovals
+      remainingApprovals: requiredApprovals - currentApprovals,
+      totalMembers
     };
   },
 

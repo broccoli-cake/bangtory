@@ -1,3 +1,4 @@
+// backend/controllers/roomController.js
 const roomService = require('../services/roomService');
 const { body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
@@ -197,28 +198,32 @@ const roomController = {
   },
 
   /**
-   * 방 정보 수정 컨트롤러
+   * 방 정보 수정 컨트롤러 - isOwner 정보 포함하여 응답
    * @route PATCH /rooms/:roomId
    * @description 방장이 방 정보를 수정합니다.
    * @param {string} roomId - 방 ID
    * @param {string} roomName - 새로운 방 이름 (선택)
    * @param {string} address - 새로운 방 주소 (선택)
-   * @returns {Object} 수정된 방 정보
+   * @returns {Object} 수정된 방 정보 (isOwner 포함)
    */
   async updateRoom(req, res) {
     try {
-      const room = await roomService.updateRoom(
+      const updatedRoom = await roomService.updateRoom(
         req.params.roomId,
         req.user._id,
         req.body
       );
 
+      // 방장인지 확인 (수정 권한이 있었다는 것은 방장이라는 의미)
+      const isOwner = updatedRoom.ownerId.toString() === req.user._id.toString();
+
       return res.status(200).json(
         createResponse(200, '방 정보 수정 완료', {
           room: {
-            roomId: room._id,
-            roomName: room.roomName,
-            address: room.address
+            roomId: updatedRoom._id,
+            roomName: updatedRoom.roomName,
+            address: updatedRoom.address,
+            isOwner: isOwner // isOwner 정보 추가
           }
         })
       );

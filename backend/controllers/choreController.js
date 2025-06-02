@@ -1,8 +1,9 @@
+// backend/controllers/choreController.js
 const choreService = require('../services/choreService');
 const { body, validationResult } = require('express-validator');
 const { ChoreError } = require('../utils/errors');
 
-// 입력값 검증 미들웨어
+// 입력값 검증 미들웨어 - 아이콘 글자 수 제한 제거
 const validateCategoryInput = [
   body('name')
     .trim()
@@ -14,6 +15,7 @@ const validateCategoryInput = [
     .trim()
     .notEmpty()
     .withMessage('아이콘은 비워둘 수 없습니다.')
+    // 글자 수 제한 제거 - .isLength({ min: 1, max: 10 }) 삭제
 ];
 
 // 응답 생성 함수
@@ -78,4 +80,4 @@ const choreController = {
 module.exports = {
   ...choreController,
   validateCategoryInput
-}; 
+};

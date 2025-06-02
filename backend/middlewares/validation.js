@@ -1,4 +1,4 @@
-// backend/middleware/validation.js (예약 관련 검증 추가)
+// backend/middlewares/validation.js
 const { body, validationResult } = require('express-validator');
 const { ValidationError } = require('../utils/errors');
 
@@ -9,13 +9,12 @@ const validateReservationCategory = [
     .withMessage('카테고리 이름은 필수입니다.')
     .isLength({ min: 1, max: 20 })
     .withMessage('카테고리 이름은 1-20자 사이여야 합니다.'),
-  
+
   body('icon')
     .trim()
     .notEmpty()
-    .withMessage('아이콘은 필수입니다.')
-    .isLength({ min: 1, max: 10 })
-    .withMessage('아이콘은 1-10자 사이여야 합니다.'),
+    .withMessage('아이콘은 필수입니다.'),
+    // 글자 수 제한 제거 - .isLength({ min: 1, max: 10 }) 삭제
   
   body('requiresApproval')
     .optional()
