@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
-import '../utils/icon_utils.dart'; // 추가
-import 'dynamic_chore_screen.dart'; // 추가
-import 'dynamic_reservation_screen.dart'; // 추가
+import '../utils/icon_utils.dart';
+import 'dynamic_chore_screen.dart';
+import 'dynamic_reservation_screen.dart';
 import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
 import 'package:frontend/screens/chat_screen.dart';
@@ -33,7 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadCategories();
-    _loadRoomMembers(); // 방 멤버 로드 추가
+    _loadRoomMembers();
+    _loadUserProfile(); // 프로필 정보 로드 추가
   }
 
   Future<void> _loadCategories() async {
@@ -42,10 +43,15 @@ class _HomeScreenState extends State<HomeScreen> {
     await appState.loadReservationCategories();
   }
 
-  // 방 멤버 로드 메서드 추가
   Future<void> _loadRoomMembers() async {
     final appState = Provider.of<AppState>(context, listen: false);
     await appState.loadRoomMembers();
+  }
+
+  // 프로필 정보 로드 추가
+  Future<void> _loadUserProfile() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    await appState.loadUserProfile();
   }
 
   // 카테고리별 아이콘 매핑 (이모지 → 기본 아이콘)
@@ -370,6 +376,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 프로필 이미지별 색상 매핑 (추가)
+  Color _getProfileColor(String? profileImageUrl) {
+    switch (profileImageUrl) {
+      case '/images/profile1.png':
+        return Colors.red[400]!;
+      case '/images/profile2.png':
+        return Colors.blue[400]!;
+      case '/images/profile3.png':
+        return Colors.green[400]!;
+      case '/images/profile4.png':
+        return Colors.purple[400]!;
+      case '/images/profile5.png':
+        return Colors.orange[400]!;
+      case '/images/profile6.png':
+        return Colors.teal[400]!;
+      default:
+        return Colors.grey[400]!;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -392,6 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // 모든 데이터 새로고침
               await _loadCategories();
               await _loadRoomMembers();
+              await _loadUserProfile();
             },
           ),
           IconButton(
@@ -513,6 +540,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final member = sortedMembers[index];
                       final isCurrentUser = member['userId'].toString() == appState.currentUser?.id;
                       final isOwner = member['isOwner'] == true;
+                      final profileImageUrl = member['profileImageUrl'];
 
                       return Container(
                         margin: const EdgeInsets.only(right: 16),
@@ -522,9 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 CircleAvatar(
                                   radius: 24,
-                                  backgroundColor: isCurrentUser
-                                      ? const Color(0xFFFA2E55)
-                                      : Colors.grey[400],
+                                  backgroundColor: _getProfileColor(profileImageUrl),
                                   child: Icon(
                                     Icons.person,
                                     color: Colors.white,

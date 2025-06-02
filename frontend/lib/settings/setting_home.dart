@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
 import 'package:frontend/screens/onboarding_screen.dart';
+import '../screens/profile_management_screen.dart'; // 추가
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -94,7 +95,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '프로필 관리',
             onTap: () {
-              // TODO: 프로필 화면으로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileManagementScreen()),
+              );
             },
           ),
           _buildSettingsItem(

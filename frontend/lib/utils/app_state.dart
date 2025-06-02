@@ -8,6 +8,7 @@ class AppState extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   UserModel? _currentUser;
+  UserProfileModel? _currentUserProfile;
   RoomModel? _currentRoom;
   bool _isLoading = false;
   List<Map<String, dynamic>> _choreCategories = [];
@@ -17,9 +18,10 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _roomMembers = [];
   List<Map<String, dynamic>> _visitorReservations = [];
   List<Map<String, dynamic>> _pendingReservations = [];
-  Map<String, List<Map<String, dynamic>>> _categoryReservations = {}; // 카테고리별 예약 데이터를 저장하는 Map
+  Map<String, List<Map<String, dynamic>>> _categoryReservations = {};
 
   UserModel? get currentUser => _currentUser;
+  UserProfileModel? get currentUserProfile => _currentUserProfile;
   RoomModel? get currentRoom => _currentRoom;
   bool get isLoading => _isLoading;
   ApiService get apiService => _apiService;
@@ -39,10 +41,10 @@ class AppState extends ChangeNotifier {
 
   // ===== 사용자 관련 =====
 
-  Future<void> createUser({String? nickname}) async {
+  Future<void> createUser({required String name}) async {
     setLoading(true);
     try {
-      _currentUser = await _apiService.createUser(nickname: nickname);
+      _currentUser = await _apiService.createUser(name: name);
       await _saveUserId(_currentUser!.id);
       notifyListeners();
     } catch (e) {
@@ -71,19 +73,34 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> setProfile({
-    required String nickname,
+  // 사용자 프로필 정보 로드
+  Future<void> loadUserProfile() async {
+    try {
+      _currentUserProfile = await _apiService.getUserProfile();
+      notifyListeners();
+    } catch (e) {
+      print('Load user profile error: $e');
+    }
+  }
+
+  // 사용자 프로필 수정
+  Future<void> updateUserProfile({
+    String? nickname,
     String? profileImageUrl,
   }) async {
     setLoading(true);
     try {
-      _currentUser = await _apiService.setProfile(
+      _currentUserProfile = await _apiService.updateUserProfile(
         nickname: nickname,
         profileImageUrl: profileImageUrl,
       );
+
+      // 방 멤버 목록도 다시 로드하여 업데이트된 정보 반영
+      await loadRoomMembers();
+
       notifyListeners();
     } catch (e) {
-      print('Set profile error: $e');
+      print('Update user profile error: $e');
       rethrow;
     } finally {
       setLoading(false);
@@ -103,6 +120,8 @@ class AppState extends ChangeNotifier {
         address: address,
       );
       await loadRoomMembers();
+      // 방 생성 후 프로필 정보도 로드 (닉네임, 프로필 이미지가 자동 생성됨)
+      await loadUserProfile();
       notifyListeners();
     } catch (e) {
       print('Create room error: $e');
@@ -117,6 +136,8 @@ class AppState extends ChangeNotifier {
     try {
       _currentRoom = await _apiService.joinRoom(inviteCode);
       await loadRoomMembers();
+      // 방 참여 후 프로필 정보도 로드 (닉네임, 프로필 이미지가 자동 생성됨)
+      await loadUserProfile();
       notifyListeners();
     } catch (e) {
       print('Join room error: $e');
@@ -131,6 +152,7 @@ class AppState extends ChangeNotifier {
       _currentRoom = await _apiService.getMyRoom();
       if (_currentRoom != null) {
         await loadRoomMembers();
+        await loadUserProfile();
       }
       notifyListeners();
     } catch (e) {
@@ -283,7 +305,6 @@ class AppState extends ChangeNotifier {
   }
 
   // ===== 집안일 일정 관련 =====
-
 
   Future<void> loadChoreSchedules({
     DateTime? startDate,
@@ -523,6 +544,7 @@ class AppState extends ChangeNotifier {
   // logout 메서드에 카테고리 데이터 정리 추가
   Future<void> logout() async {
     _currentUser = null;
+    _currentUserProfile = null;
     _currentRoom = null;
     _choreCategories = [];
     _reservationCategories = [];
@@ -530,7 +552,7 @@ class AppState extends ChangeNotifier {
     _reservationSchedules = [];
     _visitorReservations = [];
     _pendingReservations = [];
-    _categoryReservations = {};  // 추가
+    _categoryReservations = {};
     _roomMembers = [];
     await _clearUserId();
     notifyListeners();

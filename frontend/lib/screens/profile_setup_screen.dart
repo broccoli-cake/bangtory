@@ -12,8 +12,8 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
-  final TextEditingController _nicknameController = TextEditingController();
-  bool _nicknameEdited = false;
+  final TextEditingController _nameController = TextEditingController();
+  bool _nameEdited = false;
   bool _isInitialized = false;
 
   @override
@@ -29,34 +29,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     final appState = Provider.of<AppState>(context, listen: false);
 
-    // 기존 사용자가 있는지 확인
+    // 기존 사용자 데이터 로드 시도
     await appState.loadUser();
 
     if (appState.currentUser == null) {
-      // 새 사용자 생성
-      try {
-        await appState.createUser(nickname: '울퉁불퉁 토마토');
-        setState(() {
-          _nicknameController.text = appState.currentUser?.nickname ?? '울퉁불퉁 토마토';
-        });
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사용자 생성 실패: $e')),
-        );
-      }
+      // 기본 이름 설정
+      setState(() {
+        _nameController.text = '사용자';
+      });
     } else {
       setState(() {
-        _nicknameController.text = appState.currentUser?.nickname ?? '울퉁불퉁 토마토';
+        _nameController.text = appState.currentUser?.name ?? '사용자';
       });
 
-      // 이미 프로필이 설정되어 있고 방도 있다면 홈으로 이동
-      if (appState.currentUser!.isProfileSet && appState.currentRoom != null) {
+      // 이미 사용자가 있고 방도 있다면 홈으로 이동
+      if (appState.currentRoom != null) {
         _navigateToHome(appState);
         return;
       }
 
-      // 프로필은 설정되어 있지만 방이 없다면 방 생성/참여 화면으로
-      if (appState.currentUser!.isProfileSet && appState.currentRoom == null) {
+      // 사용자는 있지만 방이 없다면 방 생성/참여 화면으로
+      if (appState.currentRoom == null) {
         _navigateToGoRoom();
         return;
       }
@@ -81,18 +74,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         MaterialPageRoute(
           builder: (context) => HomeScreen(
             roomName: appState.currentRoom!.roomName,
-            userName: appState.currentUser!.nickname,
+            userName: appState.currentUser!.name,
           ),
         ),
       );
     }
   }
 
-  Future<void> _completeProfile() async {
-    String nickname = _nicknameController.text.trim();
-    if (nickname.isEmpty) {
+  Future<void> _completeSetup() async {
+    String name = _nameController.text.trim();
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('닉네임을 입력해주세요!')),
+        const SnackBar(content: Text('이름을 입력해주세요!')),
       );
       return;
     }
@@ -100,19 +93,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
 
     try {
-      await appState.setProfile(nickname: nickname);
+      // 사용자 생성 (이름만)
+      await appState.createUser(name: name);
 
-      // 프로필 설정 후 방 상태 확인
-      if (appState.currentRoom != null) {
-        // 방이 있으면 홈으로
-        _navigateToHome(appState);
-      } else {
-        // 방이 없으면 방 생성/참여 화면으로
-        _navigateToGoRoom();
-      }
+      // 방 생성/참여 화면으로 이동
+      _navigateToGoRoom();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('프로필 설정 실패: $e')),
+        SnackBar(content: Text('사용자 생성 실패: $e')),
       );
     }
   }
@@ -133,7 +121,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '안녕하세요!\n프로필을 만들어 주세요.',
+                  '안녕하세요!\n이름을 입력해주세요.',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -141,42 +129,30 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
                 const SizedBox(height: 50),
-                // 프로필 이미지
+                // 기본 프로필 이미지 (수정 불가)
                 Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 80,
-                        backgroundColor: Colors.grey[300],
-                        child: const Icon(
-                          Icons.person,
-                          size: 80,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.grey[400],
-                          child: const Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
-                        ),
-                      ),
-                    ],
+                  child: CircleAvatar(
+                    radius: 80,
+                    backgroundColor: Colors.grey[300],
+                    child: const Icon(
+                      Icons.person,
+                      size: 80,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
-                // 닉네임 입력창
+                // 이름 입력창
                 TextField(
-                  controller: _nicknameController,
+                  controller: _nameController,
                   onTap: () {
-                    if (!_nicknameEdited) {
-                      _nicknameController.clear();
-                      _nicknameEdited = true;
+                    if (!_nameEdited) {
+                      _nameController.clear();
+                      _nameEdited = true;
                     }
                   },
                   decoration: InputDecoration(
-                    hintText: '닉네임을 입력하세요',
+                    hintText: '이름을 입력하세요',
                     filled: true,
                     fillColor: const Color(0xFFFFE4E1),
                     border: OutlineInputBorder(
@@ -186,13 +162,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   ),
                 ),
+                const SizedBox(height: 16),
+                const Text(
+                  '* 닉네임과 프로필 사진은 방 입장 후 자동 생성됩니다',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
                 const Spacer(),
                 // 완료 버튼
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _completeProfile,
+                    onPressed: _completeSetup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFA2E55),
                       shape: RoundedRectangleBorder(

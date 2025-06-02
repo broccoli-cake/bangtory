@@ -18,12 +18,12 @@ class ApiService {
 
   // ===== 사용자 관련 =====
 
-  Future<UserModel> createUser({String? nickname}) async {
+  Future<UserModel> createUser({required String name}) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/users'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'nickname': nickname}),
+        body: json.encode({'name': name}),
       );
 
       print('Create User Response: ${response.statusCode} - ${response.body}');
@@ -63,33 +63,49 @@ class ApiService {
     }
   }
 
-  Future<UserModel> setProfile({
-    required String nickname,
+  // 사용자 프로필 정보 조회 (방 멤버 정보 포함)
+  Future<UserProfileModel> getUserProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/me/profile'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return UserProfileModel.fromJson(data['data']);
+      } else {
+        throw Exception('프로필 정보 조회 실패: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('프로필 정보 조회 중 오류 발생: $e');
+    }
+  }
+
+  // 사용자 프로필 수정
+  Future<UserProfileModel> updateUserProfile({
+    String? nickname,
     String? profileImageUrl,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/profiles/me'),
+      final body = <String, dynamic>{};
+      if (nickname != null) body['nickname'] = nickname;
+      if (profileImageUrl != null) body['profileImageUrl'] = profileImageUrl;
+
+      final response = await http.patch(
+        Uri.parse('$baseUrl/users/me/profile'),
         headers: _headers,
-        body: json.encode({
-          'nickname': nickname,
-          'profileImageUrl': profileImageUrl ?? '/images/default-profile.png',
-        }),
+        body: json.encode(body),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return UserModel(
-          id: _userId!,
-          nickname: data['profile']['nickname'],
-          profileImageUrl: data['profile']['profileImageUrl'],
-          isProfileSet: true,
-        );
+        return UserProfileModel.fromJson(data['data']);
       } else {
-        throw Exception('프로필 설정 실패: ${response.body}');
+        throw Exception('프로필 수정 실패: ${response.body}');
       }
     } catch (e) {
-      throw Exception('프로필 설정 중 오류 발생: $e');
+      throw Exception('프로필 수정 중 오류 발생: $e');
     }
   }
 
