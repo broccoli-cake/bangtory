@@ -1,5 +1,6 @@
 const Room = require('../models/Room');
 const RoomMember = require('../models/RoomMember');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 const { generateRandomNickname, generateUniqueNicknameInRoom } = require('../utils/generateNickname');
 const crypto = require('crypto');
@@ -31,6 +32,19 @@ const utils = {
     const expiry = new Date();
     expiry.setHours(expiry.getHours() + 3);
     return expiry;
+  },
+
+  // 랜덤 프로필 이미지 선택
+  getRandomProfileImage() {
+    const profileImages = [
+      '/images/profile1.png',
+      '/images/profile2.png',
+      '/images/profile3.png',
+      '/images/profile4.png',
+      '/images/profile5.png',
+      '/images/profile6.png'
+    ];
+    return profileImages[Math.floor(Math.random() * profileImages.length)];
   }
 };
 
@@ -55,7 +69,7 @@ const roomService = {
       const { roomName, address } = roomData;
 
       console.log('2. Room 생성 시작');
-      // Room 생성 (RoomMember는 post save 미들웨어에서 자동 생성)
+      // Room 생성
       const newRoom = new Room({
         roomName,
         address,
@@ -63,9 +77,30 @@ const roomService = {
         inviteCode: await utils.generateUniqueInviteCode(),
         inviteCodeExpiresAt: utils.getInviteCodeExpiry()
       });
-      
+
       savedRoom = await newRoom.save();
       console.log('2. Room 생성 완료:', savedRoom._id);
+
+      // User 정보 가져오기
+      const user = await User.findById(ownerId);
+      if (!user) {
+        throw new Error('사용자를 찾을 수 없습니다.');
+      }
+
+      // 방장 RoomMember 생성 (랜덤 닉네임과 프로필 이미지)
+      const nickname = generateRandomNickname();
+      const profileImageUrl = utils.getRandomProfileImage();
+
+      const roomMember = await RoomMember.create({
+        userId: ownerId,
+        roomId: savedRoom._id,
+        isOwner: true,
+        nickname,
+        profileImageUrl
+      });
+
+      savedRoom.members.push(roomMember._id);
+      await savedRoom.save();
 
       return savedRoom;
     } catch (error) {
@@ -101,14 +136,22 @@ const roomService = {
         throw new Error('유효하지 않거나 만료된 초대코드입니다.');
       }
 
+      // User 정보 가져오기
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('사용자를 찾을 수 없습니다.');
+      }
+
       // 방 내에서 중복되지 않는 닉네임 생성
       const nickname = await generateUniqueNicknameInRoom(room._id);
+      const profileImageUrl = utils.getRandomProfileImage();
 
       const roomMember = new RoomMember({
         userId,
         roomId: room._id,
         isOwner: false,
-        nickname
+        nickname,
+        profileImageUrl
       });
 
       await roomMember.save();
@@ -129,7 +172,7 @@ const roomService = {
   async getMyRoom(userId) {
     const roomMember = await RoomMember.findOne({ userId })
       .populate('roomId');
-    
+
     if (!roomMember) {
       throw new Error('참여 중인 방이 없습니다.');
     }
@@ -276,7 +319,7 @@ const roomService = {
     }
 
     const members = await RoomMember.find({ roomId })
-      .select('userId nickname isOwner joinedAt')
+      .select('userId nickname profileImageUrl isOwner joinedAt')
       .sort({ joinedAt: 1 });
 
     return members;
@@ -298,6 +341,36 @@ const roomService = {
 
     // 4. Room의 members 배열에서도 제거
     await Room.findByIdAndUpdate(roomId, { $pull: { members: member._id } });
+  },
+
+  /**
+   * 방 멤버 프로필 수정
+   */
+  async updateMemberProfile(userId, profileData) {
+    const roomMember = await RoomMember.findOne({ userId });
+    if (!roomMember) {
+      throw new Error('방 멤버를 찾을 수 없습니다.');
+    }
+
+    if (profileData.nickname) {
+      // 방 내 닉네임 중복 체크
+      const existingMember = await RoomMember.findOne({
+        roomId: roomMember.roomId,
+        nickname: profileData.nickname,
+        _id: { $ne: roomMember._id }
+      });
+      if (existingMember) {
+        throw new Error('이미 사용 중인 닉네임입니다.');
+      }
+      roomMember.nickname = profileData.nickname;
+    }
+
+    if (profileData.profileImageUrl) {
+      roomMember.profileImageUrl = profileData.profileImageUrl;
+    }
+
+    await roomMember.save();
+    return roomMember;
   }
 };
 

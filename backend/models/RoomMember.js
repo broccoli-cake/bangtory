@@ -15,11 +15,15 @@ const roomMemberSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  profileImageUrl: {
+    type: String,
+    default: '/images/profile1.png'  // 기본 프로필 이미지
+  },
   isOwner: {
     type: Boolean,
     default: false
   },
-  joinedAt: { // 참여 시간
+  joinedAt: {
     type: Date,
     default: Date.now
   }
