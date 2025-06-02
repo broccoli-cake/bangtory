@@ -55,21 +55,23 @@ class _HomeScreenState extends State<HomeScreen> {
     await appState.loadUserProfile();
   }
 
-  // 오늘 일정 로드 추가
+  // 오늘 일정 로드 수정
   Future<void> _loadTodaySchedules() async {
     final appState = Provider.of<AppState>(context, listen: false);
 
-    // 오늘 집안일 일정 로드
+    // 오늘 집안일 일정 로드 - 시간 범위를 더 넓게 설정
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
+    final startOfDay = DateTime(today.year, today.month, today.day, 0, 0, 0);
     final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+
+    print('오늘 날짜 범위: ${startOfDay} ~ ${endOfDay}'); // 디버깅용
 
     await appState.loadChoreSchedules(
       startDate: startOfDay,
       endDate: endOfDay,
     );
 
-    // 현재 주 예약 일정 로드 (오늘 예약 포함)
+    // 예약 일정 로드
     await appState.loadReservationSchedules();
 
     // 모든 카테고리의 현재 주 예약 로드
@@ -81,6 +83,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 방문객 예약도 로드
     await appState.loadVisitorReservations();
+
+    print('로드된 집안일 일정 수: ${appState.choreSchedules.length}'); // 디버깅용
+    print('로드된 방문객 예약 수: ${appState.visitorReservations.length}'); // 디버깅용
   }
 
   // 카테고리별 아이콘 매핑 (이모지 → 기본 아이콘)
@@ -405,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 오늘의 할 일 가져오기 (집안일 + 예약)
+  // 오늘의 할 일 가져오기 (집안일 + 예약) - 최종 수정 버전
   List<Map<String, dynamic>> _getTodayTasks() {
     final appState = Provider.of<AppState>(context, listen: false);
     final today = DateTime.now();
@@ -414,9 +419,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     List<Map<String, dynamic>> todayTasks = [];
 
+    print('=== 오늘 할 일 분석 시작 ===');
+    print('현재 사용자 ID: $currentUserId');
+    print('오늘 요일: $todayWeekday (${today.weekday})');
+
     if (currentUserId == null) return todayTasks;
 
-    // 1. 오늘의 집안일 일정 (내가 담당한 것만)
+    // 1. 오늘의 집안일 일정 분석
+    print('\n=== 집안일 일정 분석 ===');
     final todayChores = appState.choreSchedules.where((schedule) {
       final scheduleDate = DateTime.tryParse(schedule['date']?.toString() ?? '');
       if (scheduleDate == null) return false;
@@ -425,7 +435,30 @@ class _HomeScreenState extends State<HomeScreen> {
           scheduleDate.month == today.month &&
           scheduleDate.day == today.day;
 
-      final isMyTask = schedule['assignedTo']?['userId']?.toString() == currentUserId;
+      // 담당자 확인 - userId로 직접 비교 (백엔드에서 userId를 직접 저장하도록 수정함)
+      final assignedTo = schedule['assignedTo'];
+      bool isMyTask = false;
+
+      print('\n집안일 일정: ${schedule['category']?['name']}');
+      print('  - 날짜: $scheduleDate');
+      print('  - 같은 날: $isSameDay');
+      print('  - assignedTo: $assignedTo');
+
+      if (assignedTo != null) {
+        // assignedTo가 이제 직접 userId이므로 간단한 비교
+        if (assignedTo is Map<String, dynamic>) {
+          // 만약 여전히 객체 형태라면 _id를 확인
+          final assignedUserId = assignedTo['_id']?.toString();
+          isMyTask = assignedUserId == currentUserId;
+          print('  - 객체 형태: $assignedUserId vs $currentUserId = $isMyTask');
+        } else {
+          // 직접 문자열로 저장된 경우
+          isMyTask = assignedTo.toString() == currentUserId;
+          print('  - 직접 비교: ${assignedTo.toString()} vs $currentUserId = $isMyTask');
+        }
+      }
+
+      print('  - 최종 내 일정 여부: $isMyTask');
 
       return isSameDay && isMyTask;
     }).map((schedule) => {
@@ -436,19 +469,50 @@ class _HomeScreenState extends State<HomeScreen> {
       'categoryIcon': schedule['category']?['icon'],
     });
 
-    // 2. 오늘의 예약 일정 (내가 예약한 것만)
+    // 2. 일반 예약 분석
+    print('\n=== 일반 예약 분석 ===');
     List<Map<String, dynamic>> todayReservations = [];
 
-    // 일반 예약 (요일 기반)
     for (final categoryId in appState.categoryReservations.keys) {
       final reservations = appState.categoryReservations[categoryId] ?? [];
 
+      print('\n카테고리 ID: $categoryId');
+      print('예약 수: ${reservations.length}');
+
       final myTodayReservations = reservations.where((reservation) {
         final dayOfWeek = reservation['dayOfWeek'];
-        final reservedBy = reservation['reservedBy']?['userId']?.toString();
+        final reservedBy = reservation['reservedBy'];
 
-        // 요일이 일치하고 내가 예약한 것만
-        return dayOfWeek == todayWeekday && reservedBy == currentUserId;
+        bool isToday = false;
+        if (dayOfWeek != null) {
+          final dayOfWeekInt = dayOfWeek is int ? dayOfWeek : int.tryParse(dayOfWeek.toString());
+          isToday = dayOfWeekInt == todayWeekday;
+        }
+
+        // 예약자 확인 - userId로 직접 비교
+        bool isMyReservation = false;
+
+        print('\n일반 예약: ${reservation['category']?['name']}');
+        print('  - 요일: $dayOfWeek');
+        print('  - 오늘: $isToday');
+        print('  - reservedBy: $reservedBy');
+
+        if (reservedBy != null) {
+          if (reservedBy is Map<String, dynamic>) {
+            // 만약 여전히 객체 형태라면 _id를 확인
+            final reservedUserId = reservedBy['_id']?.toString();
+            isMyReservation = reservedUserId == currentUserId;
+            print('  - 객체 형태: $reservedUserId vs $currentUserId = $isMyReservation');
+          } else {
+            // 직접 문자열로 저장된 경우
+            isMyReservation = reservedBy.toString() == currentUserId;
+            print('  - 직접 비교: ${reservedBy.toString()} vs $currentUserId = $isMyReservation');
+          }
+        }
+
+        print('  - 최종 내 예약 여부: $isMyReservation');
+
+        return isToday && isMyReservation;
       }).map((reservation) => {
         ...reservation,
         'type': 'reservation',
@@ -460,7 +524,8 @@ class _HomeScreenState extends State<HomeScreen> {
       todayReservations.addAll(myTodayReservations);
     }
 
-    // 방문객 예약 (특정 날짜 기반)
+    // 3. 방문객 예약 분석
+    print('\n=== 방문객 예약 분석 ===');
     final myTodayVisitorReservations = appState.visitorReservations.where((reservation) {
       if (reservation['specificDate'] == null) return false;
 
@@ -471,8 +536,28 @@ class _HomeScreenState extends State<HomeScreen> {
           reservationDate.month == today.month &&
           reservationDate.day == today.day;
 
-      final reservedBy = reservation['reservedBy']?['userId']?.toString();
-      final isMyReservation = reservedBy == currentUserId;
+      final reservedBy = reservation['reservedBy'];
+      bool isMyReservation = false;
+
+      print('\n방문객 예약: ${reservation['category']?['name']}');
+      print('  - 날짜: $reservationDate');
+      print('  - 같은 날: $isSameDay');
+      print('  - reservedBy: $reservedBy');
+
+      if (reservedBy != null) {
+        if (reservedBy is Map<String, dynamic>) {
+          // 만약 여전히 객체 형태라면 _id를 확인
+          final reservedUserId = reservedBy['_id']?.toString();
+          isMyReservation = reservedUserId == currentUserId;
+          print('  - 객체 형태: $reservedUserId vs $currentUserId = $isMyReservation');
+        } else {
+          // 직접 문자열로 저장된 경우
+          isMyReservation = reservedBy.toString() == currentUserId;
+          print('  - 직접 비교: ${reservedBy.toString()} vs $currentUserId = $isMyReservation');
+        }
+      }
+
+      print('  - 최종 내 예약 여부: $isMyReservation');
 
       return isSameDay && isMyReservation;
     }).map((reservation) => {
@@ -489,7 +574,12 @@ class _HomeScreenState extends State<HomeScreen> {
     todayTasks.addAll(todayChores);
     todayTasks.addAll(todayReservations);
 
-    // 시간순 정렬 (집안일은 맨 뒤로)
+    print('\n=== 최종 결과 ===');
+    print('집안일 할 일: ${todayChores.length}개');
+    print('예약 할 일: ${todayReservations.length}개');
+    print('총 오늘 할 일: ${todayTasks.length}개');
+
+    // 시간순 정렬
     todayTasks.sort((a, b) {
       if (a['type'] == 'chore' && b['type'] != 'chore') return 1;
       if (b['type'] == 'chore' && a['type'] != 'chore') return -1;

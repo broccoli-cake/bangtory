@@ -314,8 +314,12 @@ class AppState extends ChangeNotifier {
     if (_currentRoom == null) return;
 
     try {
-      final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
-      final end = endDate ?? DateTime.now().add(const Duration(days: 30));
+      // 기본 범위를 더 넓게 설정
+      final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+      final end = endDate ?? DateTime.now().add(const Duration(days: 7));
+
+      print('집안일 일정 로드 범위: $start ~ $end'); // 디버깅용
+      print('방 ID: ${_currentRoom!.roomId}'); // 디버깅용
 
       _choreSchedules = await _apiService.getChoreSchedules(
         roomId: _currentRoom!.roomId,
@@ -323,6 +327,12 @@ class AppState extends ChangeNotifier {
         endDate: end,
         categoryId: categoryId,
       );
+
+      print('로드된 집안일 일정: ${_choreSchedules.length}개'); // 디버깅용
+      for (var schedule in _choreSchedules) {
+        print('일정: ${schedule['category']?['name']}, 날짜: ${schedule['date']}, 담당자: ${schedule['assignedTo']?['nickname']}');
+      }
+
       notifyListeners();
     } catch (e) {
       print('Load chore schedules error: $e');
@@ -339,12 +349,19 @@ class AppState extends ChangeNotifier {
     }
 
     try {
+      print('집안일 일정 생성 요청:');
+      print('- 카테고리 ID: $categoryId');
+      print('- 담당자 ID: $assignedTo');
+      print('- 날짜: $date');
+
       final newSchedule = await _apiService.createChoreSchedule(
         roomId: _currentRoom!.roomId,
         categoryId: categoryId,
         assignedTo: assignedTo,
         date: date,
       );
+
+      print('생성된 일정: $newSchedule');
 
       // 새로 생성된 일정을 바로 리스트에 추가
       _choreSchedules.add(newSchedule);

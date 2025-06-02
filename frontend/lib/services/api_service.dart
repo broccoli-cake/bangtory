@@ -366,23 +366,42 @@ class ApiService {
     String? categoryId,
   }) async {
     try {
+      // UTC로 변환하여 서버 시간대 문제 방지
+      final startDateUtc = DateTime.utc(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+      final endDateUtc = DateTime.utc(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
       final queryParams = {
         'roomId': roomId,
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate.toIso8601String(),
+        'startDate': startDateUtc.toIso8601String(),
+        'endDate': endDateUtc.toIso8601String(),
         if (categoryId != null) 'categoryId': categoryId,
       };
+
+      print('집안일 일정 API 요청:');
+      print('- 방 ID: $roomId');
+      print('- 시작일: ${startDateUtc.toIso8601String()}');
+      print('- 종료일: ${endDateUtc.toIso8601String()}');
 
       final uri = Uri.parse('$baseUrl/chores/schedules').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _headers);
 
+      print('집안일 일정 API 응답: ${response.statusCode} - ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['schedules']);
+        final schedules = List<Map<String, dynamic>>.from(data['schedules']);
+
+        print('파싱된 일정 수: ${schedules.length}');
+        for (var schedule in schedules) {
+          print('일정 데이터: $schedule');
+        }
+
+        return schedules;
       } else {
         throw Exception('일정 조회 실패: ${response.body}');
       }
     } catch (e) {
+      print('Get chore schedules error: $e');
       throw Exception('일정 조회 중 오류 발생: $e');
     }
   }
@@ -394,18 +413,26 @@ class ApiService {
     required DateTime date,
   }) async {
     try {
+      // 정오(12:00)로 설정하여 시간대 변환 문제 방지
       final adjustedDate = DateTime(date.year, date.month, date.day, 12, 0, 0);
+
+      final requestBody = {
+        'room': roomId,
+        'category': categoryId,
+        'assignedTo': assignedTo,
+        'date': adjustedDate.toIso8601String(),
+      };
+
+      print('집안일 일정 생성 API 요청:');
+      print('- 요청 본문: $requestBody');
 
       final response = await http.post(
         Uri.parse('$baseUrl/chores/schedules'),
         headers: _headers,
-        body: json.encode({
-          'room': roomId,
-          'category': categoryId,
-          'assignedTo': assignedTo,
-          'date': adjustedDate.toIso8601String(),
-        }),
+        body: json.encode(requestBody),
       );
+
+      print('집안일 일정 생성 API 응답: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -414,6 +441,7 @@ class ApiService {
         throw Exception('일정 생성 실패: ${response.body}');
       }
     } catch (e) {
+      print('Create chore schedule error: $e');
       throw Exception('일정 생성 중 오류 발생: $e');
     }
   }
