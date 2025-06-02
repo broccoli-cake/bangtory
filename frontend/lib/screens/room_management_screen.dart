@@ -98,7 +98,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('방장 위임'),
-        content: Text('$memberNickname님에게 방장을 위임하시겠습니까?\n\n위임 후에는 되돌릴 수 없습니다.'),
+        content: Text('$memberNickname님에게 방장을 위임하시겠습니까?\n\n⚠️ 위임 후에는 되돌릴 수 없습니다.\n위임 후 이전 방장은 일반 멤버가 됩니다.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -127,7 +127,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('방장이 위임되었습니다.'),
+          content: Text('방장이 위임되었습니다. 이제 방을 나갈 수 있습니다.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -202,111 +202,156 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: GestureDetector(
-          onTap: isOwner && !isCurrentUser && !isMemberOwner
-              ? () => _showTransferOwnershipDialog(member)
-              : null,
-          child: Stack(
+      elevation: isMemberOwner ? 2 : 1,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: isMemberOwner ? Border.all(color: Colors.amber, width: 2) : null,
+        ),
+        child: ListTile(
+          leading: GestureDetector(
+            onTap: isOwner && !isCurrentUser && !isMemberOwner
+                ? () => _showTransferOwnershipDialog(member)
+                : null,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: _getProfileColor(profileImageUrl),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                // 방장 표시
+                if (isMemberOwner)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.star,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+                // 방장 위임 가능 표시 (방장만 볼 수 있음)
+                if (isOwner && !isCurrentUser && !isMemberOwner)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFA2E55),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1),
+                      ),
+                      child: const Icon(
+                        Icons.touch_app,
+                        color: Colors.white,
+                        size: 10,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          title: Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: _getProfileColor(profileImageUrl),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 24,
+              Text(
+                nickname,
+                style: TextStyle(
+                  fontWeight: isMemberOwner ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
               if (isMemberOwner)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: Colors.amber,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.star,
-                      color: Colors.white,
-                      size: 10,
-                    ),
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '방장',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
-              if (isOwner && !isCurrentUser && !isMemberOwner)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFA2E55),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                    child: const Icon(
-                      Icons.touch_app,
-                      color: Colors.white,
-                      size: 8,
-                    ),
+              if (isCurrentUser)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFA2E55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '나',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
             ],
           ),
-        ),
-        title: Row(
-          children: [
-            Text(nickname),
-            if (isMemberOwner)
-              Container(
-                margin: const EdgeInsets.only(left: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '방장',
-                  style: TextStyle(color: Colors.white, fontSize: 10),
-                ),
-              ),
-            if (isCurrentUser)
-              Container(
-                margin: const EdgeInsets.only(left: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFA2E55),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '나',
-                  style: TextStyle(color: Colors.white, fontSize: 10),
-                ),
-              ),
-          ],
-        ),
-        subtitle: Text(
-          isOwner && !isCurrentUser && !isMemberOwner
-              ? '프로필을 터치하여 방장 위임'
-              : '참여 날짜: ${DateTime.tryParse(member['joinedAt'] ?? '')?.toLocal().toString().split(' ')[0] ?? '알 수 없음'}',
-          style: TextStyle(
-            fontSize: 12,
-            color: isOwner && !isCurrentUser && !isMemberOwner
-                ? const Color(0xFFFA2E55)
-                : Colors.grey[600],
+          subtitle: Text(
+            isOwner && !isCurrentUser && !isMemberOwner
+                ? '👆 프로필을 터치하여 방장 위임'
+                : '참여일: ${DateTime.tryParse(member['joinedAt'] ?? '')?.toLocal().toString().split(' ')[0] ?? '알 수 없음'}',
+            style: TextStyle(
+              fontSize: 12,
+              color: isOwner && !isCurrentUser && !isMemberOwner
+                  ? const Color(0xFFFA2E55)
+                  : Colors.grey[600],
+              fontWeight: isOwner && !isCurrentUser && !isMemberOwner
+                  ? FontWeight.w600
+                  : FontWeight.normal,
+            ),
           ),
+          trailing: isOwner && !isCurrentUser && !isMemberOwner
+              ? PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'transfer') {
+                _showTransferOwnershipDialog(member);
+              } else if (value == 'kick') {
+                _showKickMemberDialog(member);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'transfer',
+                child: Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    SizedBox(width: 8),
+                    Text('방장 위임'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'kick',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_remove, color: Colors.red, size: 16),
+                    SizedBox(width: 8),
+                    Text('내보내기'),
+                  ],
+                ),
+              ),
+            ],
+            child: const Icon(Icons.more_vert, color: Colors.grey),
+          )
+              : null,
         ),
-        trailing: isOwner && !isCurrentUser && !isMemberOwner
-            ? IconButton(
-          icon: const Icon(Icons.more_vert, color: Colors.grey),
-          onPressed: () => _showKickMemberDialog(member),
-        )
-            : null,
       ),
     );
   }
@@ -346,13 +391,41 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
           final isOwner = appState.currentRoom!.isOwner;
           final currentUserId = appState.currentUser?.id ?? '';
-          final totalMembers = appState.roomMembers.length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 방 권한 상태 표시
+                if (isOwner)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.amber.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '방장 권한으로 방 정보 수정, 멤버 관리, 방장 위임이 가능합니다.',
+                            style: TextStyle(
+                              color: Colors.amber.shade700,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // 방 정보 섹션
                 Container(
                   width: double.infinity,
@@ -427,6 +500,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: const BorderSide(color: Color(0xFFFA2E55)),
                           ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -459,6 +536,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: const BorderSide(color: Color(0xFFFA2E55)),
+                          ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
                           ),
                         ),
                       ),
@@ -542,12 +623,28 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
                       if (isOwner) ...[
                         const SizedBox(height: 8),
-                        Text(
-                          '💡 프로필을 터치하여 방장을 위임할 수 있습니다',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '프로필을 터치하여 방장을 위임할 수 있습니다',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -639,7 +736,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
                 const SizedBox(height: 24),
 
-                // 방 나가기 섹션 (수정됨)
+                // 방 나가기 섹션
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -666,41 +763,87 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           color: Colors.red,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isOwner
-                            ? totalMembers > 1
-                            ? '⚠️ 방장은 다른 멤버에게 방장을 위임한 후 나갈 수 있습니다.'
-                            : '⚠️ 방장이 나가면 방이 삭제됩니다.'
-                            : '방을 나가면 다시 초대 코드로만 들어올 수 있습니다.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                      const SizedBox(height: 12),
+
+                      // 방장인 경우 경고 메시지
+                      if (isOwner)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.warning, color: Colors.red.shade600, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '방장 제한사항',
+                                      style: TextStyle(
+                                        color: Colors.red.shade800,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '방장은 다른 멤버에게 방장을 위임한 후에만 방을 나갈 수 있습니다.\n방장을 위임하지 않으면 방을 나갈 수 없습니다.',
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(
+                          '방을 나가면 다시 초대 코드로만 들어올 수 있습니다.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+                            backgroundColor: isOwner ? Colors.grey[400] : Colors.red,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: (isOwner && totalMembers > 1) ? null : () => _showLeaveRoomDialog(),
-                          child: Text(
-                            isOwner && totalMembers > 1
-                                ? '방장 위임 후 나가기 가능'
-                                : isOwner
-                                ? '방 삭제하고 나가기'
-                                : '방 나가기',
-                            style: TextStyle(
-                              color: (isOwner && totalMembers > 1) ? Colors.grey[400] : Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          onPressed: isOwner ? null : () => _showLeaveRoomDialog(),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isOwner ? Icons.block : Icons.exit_to_app,
+                                color: isOwner ? Colors.grey[600] : Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isOwner ? '방장 위임 후 나가기 가능' : '방 나가기',
+                                style: TextStyle(
+                                  color: isOwner ? Colors.grey[600] : Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -764,7 +907,6 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               backgroundColor: const Color(0xFFFA2E55),
             ),
             onPressed: () {
-              // 클립보드에 복사
               Clipboard.setData(ClipboardData(text: inviteCode));
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -782,21 +924,15 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   void _showLeaveRoomDialog() {
-    final appState = Provider.of<AppState>(context, listen: false);
-    final isOwner = appState.currentRoom?.isOwner ?? false;
-    final totalMembers = appState.roomMembers.length;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          isOwner ? '방 삭제' : '방 나가기',
-          style: const TextStyle(color: Colors.red),
+        title: const Text(
+          '방 나가기',
+          style: TextStyle(color: Colors.red),
         ),
-        content: Text(
-          isOwner
-              ? '정말로 방을 삭제하시겠습니까?\n\n방장이 나가면 방이 완전히 삭제되며, 모든 데이터가 사라집니다.'
-              : '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
+        content: const Text(
+          '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
         ),
         actions: [
           TextButton(
@@ -811,9 +947,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               Navigator.pop(context);
               await _leaveRoom();
             },
-            child: Text(
-              isOwner ? '삭제' : '나가기',
-              style: const TextStyle(color: Colors.white),
+            child: const Text(
+              '나가기',
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -834,7 +970,6 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         ),
       );
 
-      // 방을 나간 후 온보딩 화면으로 이동
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),

@@ -245,13 +245,23 @@ class ApiService {
         body: json.encode(body),
       );
 
+      print('Update Room Response: ${response.statusCode} - ${response.body}'); // 디버깅용
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return RoomModel.fromJson(data['room']);
+
+        // 백엔드에서 isOwner 정보를 포함한 응답 처리
+        return RoomModel(
+          roomId: data['room']['roomId'],
+          roomName: data['room']['roomName'],
+          address: data['room']['address'],
+          isOwner: data['room']['isOwner'] ?? false, // isOwner 정보 포함
+        );
       } else {
         throw Exception('방 정보 수정 실패: ${response.body}');
       }
     } catch (e) {
+      print('Update Room Error: $e'); // 디버깅용
       throw Exception('방 정보 수정 중 오류 발생: $e');
     }
   }

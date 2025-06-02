@@ -141,11 +141,20 @@ class AppState extends ChangeNotifier {
 
     setLoading(true);
     try {
-      _currentRoom = await _apiService.updateRoom(
+      final updatedRoom = await _apiService.updateRoom(
         roomId: _currentRoom!.roomId,
         roomName: roomName,
         address: address,
       );
+
+      // 기존 _currentRoom을 업데이트하되 isOwner 정보는 유지
+      _currentRoom = RoomModel(
+        roomId: updatedRoom.roomId,
+        roomName: updatedRoom.roomName,
+        address: updatedRoom.address,
+        isOwner: updatedRoom.isOwner, // 백엔드에서 반환된 isOwner 사용
+      );
+
       notifyListeners();
     } catch (e) {
       print('Update room error: $e');
