@@ -42,6 +42,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
 
     try {
+      // selectedPersonId를 그대로 전달 (이미 올바른 사용자 ID)
       await appState.createChoreSchedule(
         categoryId: widget.category['_id'],
         assignedTo: selectedPersonId!,
@@ -56,7 +57,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
         SnackBar(content: Text('${widget.category['name']} 일정이 등록되었습니다.')),
       );
 
-      // 데이터 새로고침 (AppState에서 이미 처리하지만 확실히 하기 위해)
+      // 데이터 새로고침
       await _loadData();
 
     } catch (e) {
@@ -211,6 +212,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                 Wrap(
                   spacing: 8.0,
                   children: appState.roomMembers.map((member) {
+                    // userId를 사용하여 선택 (백엔드에서 userId로 RoomMember를 찾음)
                     final userId = member['userId']?.toString();
                     final nickname = member['nickname']?.toString() ?? '알 수 없음';
                     final isSelected = selectedPersonId == userId;
@@ -220,7 +222,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                       selected: isSelected,
                       onSelected: userId != null ? (_) {
                         setState(() {
-                          selectedPersonId = userId;
+                          selectedPersonId = userId; // userId 사용
                         });
                       } : null,
                     );
