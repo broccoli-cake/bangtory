@@ -168,6 +168,50 @@ const choreScheduleService = {
   },
 
   /**
+   * 일정 완료 해제 (새로 추가)
+   */
+  async uncompleteSchedule(scheduleId, userId) {
+    console.log('일정 완료 해제 요청:', scheduleId);
+
+    const schedule = await ChoreSchedule.findById(scheduleId);
+
+    if (!schedule) {
+      throw new ChoreError('일정을 찾을 수 없습니다.', 404);
+    }
+
+    // 방 멤버인지 확인
+    const roomMember = await RoomMember.findOne({
+      roomId: schedule.room,
+      userId: userId
+    });
+
+    if (!roomMember) {
+      throw new ChoreError('방 멤버만 완료 해제할 수 있습니다.', 403);
+    }
+
+    // 완료되지 않은 일정은 해제할 수 없음
+    if (!schedule.isCompleted) {
+      throw new ChoreError('완료되지 않은 일정은 해제할 수 없습니다.', 400);
+    }
+
+    schedule.isCompleted = false;
+    schedule.completedAt = null;
+
+    const updatedSchedule = await schedule.save();
+    console.log('완료 해제 저장 완료');
+
+    // 해제된 일정을 populate하여 반환
+    const populatedSchedule = await ChoreSchedule.findById(updatedSchedule._id)
+      .populate('category', 'name icon type')
+      .populate('assignedTo', 'name');
+
+    // RoomMember 정보 추가
+    const scheduleWithMemberInfo = await this.addMemberInfoToSchedules(schedule.room, [populatedSchedule]);
+
+    return scheduleWithMemberInfo[0];
+  },
+
+  /**
    * 일정 삭제
    */
   async deleteSchedule(scheduleId, userId) {

@@ -139,6 +139,36 @@ const choreScheduleController = {
   },
 
   /**
+   * 일정 완료 해제 (새로 추가)
+   */
+  async uncompleteSchedule(req, res) {
+    try {
+      console.log('일정 완료 해제 요청:', req.params.scheduleId);
+
+      const schedule = await choreScheduleService.uncompleteSchedule(
+        req.params.scheduleId,
+        req.user._id
+      );
+
+      console.log('완료 해제된 일정 (최종):', {
+        id: schedule._id,
+        isCompleted: schedule.isCompleted,
+        completedAt: schedule.completedAt
+      });
+
+      return res.status(200).json(
+        createResponse(200, '일정 완료 해제 완료', { schedule })
+      );
+    } catch (error) {
+      console.error('일정 완료 해제 중 에러:', error);
+      const statusCode = error instanceof ChoreError ? error.statusCode : 400;
+      return res.status(statusCode).json(
+        createResponse(statusCode, error.message)
+      );
+    }
+  },
+
+  /**
    * 일정 삭제
    */
   async deleteSchedule(req, res) {
