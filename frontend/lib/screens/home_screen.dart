@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
+import '../utils/icon_utils.dart'; // 추가
 import 'dynamic_chore_screen.dart'; // 추가
 import 'dynamic_reservation_screen.dart'; // 추가
 import 'package:frontend/settings/setting_home.dart';
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await appState.loadRoomMembers();
   }
 
-  // 카테고리별 아이콘 매핑
+  // 카테고리별 아이콘 매핑 (이모지 → 기본 아이콘)
   IconData getCategoryIcon(String categoryName) {
     final iconMap = {
       // 집안일 아이콘
@@ -59,6 +60,23 @@ class _HomeScreenState extends State<HomeScreen> {
       '욕실': Icons.bathtub,
       '세탁기': Icons.local_laundry_service,
       '방문객': Icons.emoji_people,
+
+      // 추가 가능한 아이콘들
+      '주방': Icons.kitchen,
+      '거실': Icons.weekend,
+      '방': Icons.bed,
+      '화장실': Icons.wc,
+      '발코니': Icons.balcony,
+      '정원': Icons.grass,
+      '차고': Icons.garage,
+      '운동': Icons.fitness_center,
+      '공부': Icons.school,
+      '회의': Icons.meeting_room,
+      '음식': Icons.restaurant,
+      '쇼핑': Icons.shopping_cart,
+      '의료': Icons.medical_services,
+      '여행': Icons.flight,
+      '업무': Icons.work,
     };
 
     return iconMap[categoryName] ?? Icons.category;
@@ -87,21 +105,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 동적 카테고리 아이템 빌드
+  // 동적 카테고리 아이템 빌드 (IconUtils 사용)
   Widget _buildCategoryItem(Map<String, dynamic> category, bool isChore) {
     final categoryName = category['name'];
-    final categoryIcon = category['icon'];
+    final categoryIcon = category['icon']; // 아이콘 이름이 저장됨
     final isDefault = category['type'] == 'default';
+
+    // 아이콘 결정 순서: 저장된 아이콘 이름 → 카테고리 이름 기반 기본 아이콘 → 기본 아이콘
+    IconData iconData;
+    if (categoryIcon != null && categoryIcon.isNotEmpty) {
+      iconData = IconUtils.getIconData(categoryIcon);
+    } else {
+      iconData = IconUtils.getDefaultIconForCategory(categoryName);
+    }
 
     return GestureDetector(
       onTap: () => _navigateToScreen(category, isChore),
       onLongPress: isDefault ? null : () => _confirmDeleteCategory(isChore, category),
       child: Column(
         children: [
-          // 이모지 아이콘이 있으면 사용, 없으면 기본 아이콘 사용
-          categoryIcon.isNotEmpty
-              ? Text(categoryIcon, style: const TextStyle(fontSize: 32))
-              : Icon(getCategoryIcon(categoryName), size: 35, color: Colors.black54),
+          Icon(
+            iconData,
+            size: 35,
+            color: Colors.black54,
+          ),
           const SizedBox(height: 10),
           Text(categoryName),
         ],
@@ -162,10 +189,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 카테고리 추가 다이얼로그
+  // 카테고리 추가 다이얼로그 (IconUtils 사용)
   void _showAddCategoryDialog(bool isChore) {
-    String selectedIcon = '⭐';
+    String selectedIconName = 'category';
     TextEditingController nameController = TextEditingController();
+
+    // 카테고리 타입에 맞는 아이콘 목록 가져오기
+    final availableIcons = isChore
+        ? IconUtils.getChoreIcons()
+        : IconUtils.getReservationIcons();
 
     showDialog(
       context: context,
@@ -173,42 +205,60 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, setDialogState) {
           return AlertDialog(
             title: Text('${isChore ? "집안일" : "예약"} 카테고리 추가'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: '카테고리 이름'),
-                ),
-                const SizedBox(height: 10),
-                const Text('아이콘 선택:'),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    '⭐', '🏠', '💡', '🐾', '☕', '📶', '🔧', '📱', '🎮', '📚'
-                  ].map((icon) {
-                    return GestureDetector(
-                      onTap: () {
-                        setDialogState(() {
-                          selectedIcon = icon;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: selectedIcon == icon ? Colors.pinkAccent : Colors.grey,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(icon, style: const TextStyle(fontSize: 24)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: '카테고리 이름'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('아이콘 선택:'),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.maxFinite,
+                    height: 200,
+                    child: GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        childAspectRatio: 1,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                      itemCount: availableIcons.length,
+                      itemBuilder: (context, index) {
+                        final iconName = availableIcons.keys.elementAt(index);
+                        final iconData = availableIcons[iconName]!;
+                        final isSelected = selectedIconName == iconName;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedIconName = iconName;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFFFA2E55) : Colors.grey,
+                                width: isSelected ? 3 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              color: isSelected ? const Color(0xFFFA2E55).withOpacity(0.1) : null,
+                            ),
+                            child: Icon(
+                              iconData,
+                              size: 28,
+                              color: isSelected ? const Color(0xFFFA2E55) : Colors.grey[700],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -216,6 +266,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: const Text('취소'),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFA2E55),
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () async {
                   final name = nameController.text.trim();
                   if (name.isNotEmpty) {
@@ -225,12 +279,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (isChore) {
                         await appState.createChoreCategory(
                           name: name,
-                          icon: selectedIcon,
+                          icon: selectedIconName,
                         );
                       } else {
                         await appState.createReservationCategory(
                           name: name,
-                          icon: selectedIcon,
+                          icon: selectedIconName,
                         );
                       }
 
@@ -560,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 48,
                         child: const Icon(
                           Icons.share,
-                          color: Colors.black,
+                          color: Colors.black54,
                           size: 20,
                         ),
                       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
-import 'package:frontend/screens/onboarding_screen.dart'; // 위에 올려주신 OnboardingScreen
+import 'package:frontend/screens/onboarding_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
