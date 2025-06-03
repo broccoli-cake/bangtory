@@ -1,6 +1,7 @@
 const ChoreSchedule = require('../models/ChoreSchedule');
 const Room = require('../models/Room');
 const RoomMember = require('../models/RoomMember');
+const notificationService = require('./notificationService');
 const { ChoreError } = require('../utils/errors');
 
 const choreScheduleService = {
@@ -124,8 +125,53 @@ const choreScheduleService = {
 
     // RoomMember 정보 추가
     const scheduleWithMemberInfo = await this.addMemberInfoToSchedules(room._id, [populatedSchedule]);
+    const finalSchedule = scheduleWithMemberInfo[0];
 
-    return scheduleWithMemberInfo[0];
+    // 집안일 배정 알림 전송
+    try {
+      // 담당자에게 집안일 배정 알림 (본인이 등록한 경우가 아닐 때만)
+      if (assignedMember.userId.toString() !== userId) {
+        await notificationService.notifyUser({
+          userId: scheduleData.assignedTo,
+          fromUserId: userId,
+          roomId: room._id,
+          type: 'chore_assigned',
+          title: '새로운 집안일 배정',
+          message: `${finalSchedule.category.name} 담당으로 배정되었습니다.`,
+          relatedData: {
+            scheduleId: finalSchedule._id,
+            categoryName: finalSchedule.category.name,
+            date: finalSchedule.date
+          }
+        });
+      }
+
+      // 방의 다른 멤버들에게 일정 생성 알림
+      const createdBy = await RoomMember.findOne({
+        roomId: room._id,
+        userId: userId
+      });
+
+      await notificationService.notifyRoomMembers({
+        roomId: room._id,
+        fromUserId: userId,
+        type: 'chore_assigned',
+        title: '집안일 일정 생성',
+        message: `${createdBy?.nickname || '멤버'}님이 ${finalSchedule.category.name} 일정을 등록했습니다.`,
+        relatedData: {
+          scheduleId: finalSchedule._id,
+          categoryName: finalSchedule.category.name,
+          assignedToNickname: assignedMember?.nickname,
+          assignedToUserId: scheduleData.assignedTo,
+          date: finalSchedule.date
+        },
+        excludeUserIds: scheduleData.assignedTo !== userId ? [scheduleData.assignedTo] : [] // 담당자가 본인이 아니면 제외
+      });
+    } catch (notificationError) {
+      console.error('집안일 배정 알림 전송 실패:', notificationError);
+    }
+
+    return finalSchedule;
   },
 
   /**
@@ -163,8 +209,34 @@ const choreScheduleService = {
 
     // RoomMember 정보 추가
     const scheduleWithMemberInfo = await this.addMemberInfoToSchedules(schedule.room, [populatedSchedule]);
+    const finalSchedule = scheduleWithMemberInfo[0];
 
-    return scheduleWithMemberInfo[0];
+    // 집안일 완료 알림 전송
+    try {
+      // 방의 모든 멤버들에게 완료 알림
+      const completedBy = await RoomMember.findOne({
+        roomId: schedule.room,
+        userId: userId
+      });
+
+      await notificationService.notifyRoomMembers({
+        roomId: schedule.room,
+        fromUserId: userId,
+        type: 'chore_completed',
+        title: '집안일 완료',
+        message: `${completedBy?.nickname || '멤버'}님이 ${finalSchedule.category.name}을(를) 완료했습니다.`,
+        relatedData: {
+          scheduleId: finalSchedule._id,
+          categoryName: finalSchedule.category.name,
+          completedAt: finalSchedule.completedAt,
+          completedByNickname: completedBy?.nickname
+        }
+      });
+    } catch (notificationError) {
+      console.error('집안일 완료 알림 전송 실패:', notificationError);
+    }
+
+    return finalSchedule;
   },
 
   /**
@@ -207,8 +279,34 @@ const choreScheduleService = {
 
     // RoomMember 정보 추가
     const scheduleWithMemberInfo = await this.addMemberInfoToSchedules(schedule.room, [populatedSchedule]);
+    const finalSchedule = scheduleWithMemberInfo[0];
 
-    return scheduleWithMemberInfo[0];
+    // 집안일 완료 해제 알림 전송
+    try {
+      // 방의 모든 멤버들에게 완료 해제 알림
+      const uncompletedBy = await RoomMember.findOne({
+        roomId: schedule.room,
+        userId: userId
+      });
+
+      await notificationService.notifyRoomMembers({
+        roomId: schedule.room,
+        fromUserId: userId,
+        type: 'chore_assigned', // 다시 할 일이 되었으므로 assigned 타입 사용
+        title: '집안일 완료 해제',
+        message: `${uncompletedBy?.nickname || '멤버'}님이 ${finalSchedule.category.name} 완료를 해제했습니다.`,
+        relatedData: {
+          scheduleId: finalSchedule._id,
+          categoryName: finalSchedule.category.name,
+          uncompletedByNickname: uncompletedBy?.nickname,
+          assignedToNickname: finalSchedule.assignedTo?.nickname
+        }
+      });
+    } catch (notificationError) {
+      console.error('집안일 완료 해제 알림 전송 실패:', notificationError);
+    }
+
+    return finalSchedule;
   },
 
   /**
@@ -217,7 +315,9 @@ const choreScheduleService = {
   async deleteSchedule(scheduleId, userId) {
     console.log('일정 삭제 요청:', scheduleId);
 
-    const schedule = await ChoreSchedule.findById(scheduleId);
+    const schedule = await ChoreSchedule.findById(scheduleId)
+      .populate('category', 'name icon type')
+      .populate('assignedTo', 'name');
 
     if (!schedule) {
       throw new ChoreError('일정을 찾을 수 없습니다.', 404);
@@ -231,6 +331,35 @@ const choreScheduleService = {
 
     if (!roomMember) {
       throw new ChoreError('방 멤버만 삭제할 수 있습니다.', 403);
+    }
+
+    // 일정 삭제 알림 전송 (삭제 전에)
+    try {
+      const deletedBy = await RoomMember.findOne({
+        roomId: schedule.room,
+        userId: userId
+      });
+
+      const assignedMember = await RoomMember.findOne({
+        roomId: schedule.room,
+        userId: schedule.assignedTo._id
+      });
+
+      await notificationService.notifyRoomMembers({
+        roomId: schedule.room,
+        fromUserId: userId,
+        type: 'chore_deleted',
+        title: '집안일 일정 삭제',
+        message: `${deletedBy?.nickname || '멤버'}님이 ${schedule.category.name} 일정을 삭제했습니다.`,
+        relatedData: {
+          categoryName: schedule.category.name,
+          assignedToNickname: assignedMember?.nickname,
+          date: schedule.date,
+          deletedByNickname: deletedBy?.nickname
+        }
+      });
+    } catch (notificationError) {
+      console.error('일정 삭제 알림 전송 실패:', notificationError);
     }
 
     await schedule.deleteOne();

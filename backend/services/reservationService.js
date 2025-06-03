@@ -1,6 +1,7 @@
 const ReservationCategory = require('../models/ReservationCategory');
 const RoomMember = require('../models/RoomMember');
 const { ReservationError } = require('../utils/errors');
+const notificationService = require('./notificationService');
 
 const reservationService = {
   /**

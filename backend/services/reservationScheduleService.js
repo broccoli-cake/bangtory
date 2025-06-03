@@ -5,6 +5,7 @@ const ReservationApproval = require('../models/ReservationApproval');
 const Room = require('../models/Room');
 const RoomMember = require('../models/RoomMember');
 const { ReservationError } = require('../utils/errors');
+const notificationService = require('./notificationService');
 
 const reservationScheduleService = {
   /**
@@ -461,7 +462,50 @@ const reservationScheduleService = {
       await this.createRecurringReservations(savedSchedule);
     }
 
-    return savedSchedule;
+    try {
+        const createdBy = await RoomMember.findOne({
+          roomId: room._id,
+          userId: userId
+        });
+
+        if (category.isVisitor) {
+          // 방문객 예약 생성 시 방의 모든 멤버들에게 승인 요청 알림
+          await notificationService.notifyRoomMembers({
+            roomId: room._id,
+            fromUserId: userId,
+            type: 'visitor_request',
+            title: '방문객 예약 승인 요청',
+            message: `${createdBy?.nickname || '멤버'}님이 방문객 예약을 요청했습니다. 승인이 필요합니다.`,
+            relatedData: {
+              reservationId: savedSchedule._id,
+              specificDate: savedSchedule.specificDate,
+              startHour: savedSchedule.startHour,
+              endHour: savedSchedule.endHour
+            }
+          });
+        } else {
+          // 일반 예약 생성 시 알림
+          await notificationService.notifyRoomMembers({
+            roomId: room._id,
+            fromUserId: userId,
+            type: 'reservation_created',
+            title: '새로운 예약',
+            message: `${createdBy?.nickname || '멤버'}님이 ${category.name} 예약을 등록했습니다.`,
+            relatedData: {
+              reservationId: savedSchedule._id,
+              categoryName: category.name,
+              dayOfWeek: savedSchedule.dayOfWeek,
+              startHour: savedSchedule.startHour,
+              endHour: savedSchedule.endHour,
+              isRecurring: savedSchedule.isRecurring
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error('예약 생성 알림 전송 실패:', notificationError);
+      }
+
+      return savedSchedule;
   },
 
   /**
@@ -623,6 +667,73 @@ const reservationScheduleService = {
         remainingApprovals: requiredApprovals - currentApprovals,
         totalMembers
       };
+
+    try {
+        const approvedBy = await RoomMember.findOne({
+          roomId: reservation.room,
+          userId: userId
+        });
+
+        const reservedBy = await RoomMember.findOne({
+          roomId: reservation.room,
+          userId: reservation.reservedBy
+        });
+
+        if (result.isFullyApproved) {
+          // 모든 승인이 완료된 경우 예약자에게 알림
+          await notificationService.notifyUser({
+            userId: reservation.reservedBy.toString(),
+            fromUserId: userId,
+            roomId: reservation.room,
+            type: 'reservation_approved',
+            title: '방문객 예약 최종 승인',
+            message: '방문객 예약이 모든 멤버의 승인을 받아 최종 승인되었습니다.',
+            relatedData: {
+              reservationId: reservation._id,
+              specificDate: reservation.specificDate,
+              startHour: reservation.startHour,
+              endHour: reservation.endHour
+            }
+          });
+
+          // 다른 멤버들에게도 최종 승인 알림
+          await notificationService.notifyRoomMembers({
+            roomId: reservation.room,
+            fromUserId: userId,
+            type: 'reservation_approved',
+            title: '방문객 예약 최종 승인',
+            message: `${reservedBy?.nickname || '멤버'}님의 방문객 예약이 최종 승인되었습니다.`,
+            relatedData: {
+              reservationId: reservation._id,
+              requesterNickname: reservedBy?.nickname,
+              specificDate: reservation.specificDate,
+              startHour: reservation.startHour,
+              endHour: reservation.endHour
+            },
+            excludeUserIds: [reservation.reservedBy.toString()]
+          });
+        } else {
+          // 부분 승인인 경우 예약자에게 진행 상황 알림
+          await notificationService.notifyUser({
+            userId: reservation.reservedBy.toString(),
+            fromUserId: userId,
+            roomId: reservation.room,
+            type: 'reservation_approved',
+            title: '방문객 예약 부분 승인',
+            message: `${approvedBy?.nickname || '멤버'}님이 승인했습니다. ${result.remainingApprovals}명의 승인이 더 필요합니다.`,
+            relatedData: {
+              reservationId: reservation._id,
+              currentApprovals: result.currentApprovals,
+              requiredApprovals: result.requiredApprovals,
+              remainingApprovals: result.remainingApprovals
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error('예약 승인 알림 전송 실패:', notificationError);
+      }
+
+      return result;
     },
 
   /**

@@ -20,6 +20,8 @@ const chatRoutes = require('./routes/chatRoutes'); // 채팅 라우트 추가
 const ChatMessage = require('./models/ChatMessage'); // 채팅 메시지 모델 추가
 const RoomMember = require('./models/RoomMember'); // 룸 멤버 모델 추가
 const notificationRoutes = require('./routes/notificationRoutes'); // 알림 라우트 추가
+require('./schedulers/reservationScheduler'); // 예약 스케줄러 초기화
+require('./schedulers/notificationScheduler'); // 알림 스케줄러 초기화 추가
 
 // Express 애플리케이션 인스턴스 생성
 const app = express();
@@ -305,8 +307,7 @@ notificationNamespace.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('알림 소켓 연결 해제:', socket.id);
   });
-}
-
+})
 // 방별 카테고리는 방 생성 시 자동으로 생성됨
 console.log('방별 카테고리는 방 생성/참여 시 자동으로 관리됩니다.');
 

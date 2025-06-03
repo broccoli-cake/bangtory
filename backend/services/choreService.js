@@ -1,6 +1,7 @@
 const ChoreCategory = require('../models/ChoreCategory');
 const RoomMember = require('../models/RoomMember');
 const { ChoreError } = require('../utils/errors');
+const notificationService = require('./notificationService');
 
 const choreService = {
   /**
@@ -46,6 +47,32 @@ const choreService = {
       room: roomMember.roomId
     });
     return await category.save();
+
+    // createCategory 메서드에 알림 추가
+    try {
+      // 방의 모든 멤버들에게 카테고리 생성 알림
+      const createdBy = await RoomMember.findOne({
+        userId,
+        roomId: roomMember.roomId
+      });
+
+      await notificationService.notifyRoomMembers({
+        roomId: roomMember.roomId,
+        fromUserId: userId,
+        type: 'category_created',
+        title: '새로운 집안일 카테고리',
+        message: `${createdBy?.nickname || '멤버'}님이 '${category.name}' 카테고리를 추가했습니다.`,
+        relatedData: {
+          categoryId: category._id,
+          categoryName: category.name,
+          categoryType: 'chore'
+        }
+      });
+    } catch (notificationError) {
+      console.error('집안일 카테고리 생성 알림 전송 실패:', notificationError);
+    }
+
+    return category;
   },
 
   /**

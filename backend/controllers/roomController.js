@@ -1,5 +1,7 @@
 // backend/controllers/roomController.js
 const roomService = require('../services/roomService');
+const notificationService = require('../services/notificationService');
+const RoomMember = require('../models/RoomMember');
 const { body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
@@ -41,7 +43,9 @@ const roomController = {
       }
 
       const room = await roomService.createRoom(req.body, req.user._id);
-      
+
+      // 방 생성 알림은 roomService에서 처리됨
+
       return res.status(201).json(
         createResponse(201, '방 생성 완료', {
           room: {
@@ -73,6 +77,28 @@ const roomController = {
       const { roomId } = req.body;
       const room = await roomService.generateInviteCode(roomId, req.user._id);
 
+      // 초대 코드 생성 알림
+      try {
+        const generatedBy = await RoomMember.findOne({
+          roomId: roomId,
+          userId: req.user._id
+        });
+
+        await notificationService.notifyRoomMembers({
+          roomId: roomId,
+          fromUserId: req.user._id,
+          type: 'invite_code_generated',
+          title: '초대 코드 생성',
+          message: `${generatedBy?.nickname || '방장'}님이 새로운 초대 코드를 생성했습니다.`,
+          relatedData: {
+            inviteCode: room.inviteCode,
+            expiresAt: room.inviteCodeExpiresAt
+          }
+        });
+      } catch (notificationError) {
+        console.error('초대 코드 생성 알림 전송 실패:', notificationError);
+      }
+
       return res.status(200).json(
         createResponse(200, '초대 코드 생성 완료', {
           inviteCode: room.inviteCode,
@@ -98,6 +124,8 @@ const roomController = {
     try {
       const { inviteCode } = req.body;
       const room = await roomService.joinRoom(inviteCode, req.user._id);
+
+      // 방 참여 알림은 roomService에서 처리됨
 
       return res.status(200).json(
         createResponse(200, '방 참여 완료', {
@@ -214,6 +242,28 @@ const roomController = {
         req.body
       );
 
+      // 방 정보 수정 알림
+      try {
+        const updatedBy = await RoomMember.findOne({
+          roomId: req.params.roomId,
+          userId: req.user._id
+        });
+
+        await notificationService.notifyRoomMembers({
+          roomId: req.params.roomId,
+          fromUserId: req.user._id,
+          type: 'room_updated',
+          title: '방 정보 수정',
+          message: `${updatedBy?.nickname || '방장'}님이 방 정보를 수정했습니다.`,
+          relatedData: {
+            roomName: updatedRoom.roomName,
+            address: updatedRoom.address
+          }
+        });
+      } catch (notificationError) {
+        console.error('방 정보 수정 알림 전송 실패:', notificationError);
+      }
+
       // 방장인지 확인 (수정 권한이 있었다는 것은 방장이라는 의미)
       const isOwner = updatedRoom.ownerId.toString() === req.user._id.toString();
 
@@ -223,7 +273,7 @@ const roomController = {
             roomId: updatedRoom._id,
             roomName: updatedRoom.roomName,
             address: updatedRoom.address,
-            isOwner: isOwner // isOwner 정보 추가
+            isOwner: isOwner
           }
         })
       );
@@ -242,7 +292,7 @@ const roomController = {
     try {
       const { roomId } = req.params;
       const members = await roomService.getRoomMembers(roomId);
-      
+
       return res.status(200).json({
         resultCode: '200',
         resultMessage: '방 멤버 목록 조회 성공',
@@ -257,7 +307,7 @@ const roomController = {
     }
   },
 
-/**
+  /**
    * 방 나가기 컨트롤러
    * @route DELETE /rooms/leave
    * @description 사용자가 현재 참여 중인 방을 나갑니다.
@@ -266,6 +316,8 @@ const roomController = {
   async leaveRoom(req, res) {
     try {
       await roomService.leaveRoom(req.user._id);
+
+      // 방 나가기 알림은 roomService에서 처리됨
 
       return res.status(200).json(
         createResponse(200, '방을 성공적으로 나갔습니다.')
@@ -299,6 +351,8 @@ const roomController = {
 
       await roomService.transferOwnership(roomId, req.user._id, newOwnerId);
 
+      // 방장 위임 알림은 roomService에서 처리됨
+
       return res.status(200).json(
         createResponse(200, '방장 위임이 완료되었습니다.')
       );
@@ -318,7 +372,43 @@ const roomController = {
   async kickMember(req, res) {
     try {
       const { roomId, userId } = req.params;
+
+      // 내보내기 전에 멤버 정보 조회 (알림을 위해)
+      const member = await RoomMember.findOne({ roomId, userId });
+
       await roomService.kickMember(roomId, userId, req.user._id);
+
+      // 멤버 내보내기 알림
+      try {
+        if (member) {
+          // 내보낸 멤버에게 알림
+          await notificationService.notifyUser({
+            userId: userId,
+            fromUserId: req.user._id,
+            roomId: roomId,
+            type: 'member_kicked',
+            title: '방에서 내보내짐',
+            message: '방에서 내보내졌습니다.',
+            relatedData: { kickedByOwnerId: req.user._id }
+          });
+
+          // 다른 멤버들에게 알림
+          await notificationService.notifyRoomMembers({
+            roomId: roomId,
+            fromUserId: req.user._id,
+            type: 'member_kicked',
+            title: '멤버 내보내기',
+            message: `${member.nickname}님이 방에서 내보내졌습니다.`,
+            relatedData: {
+              kickedUserId: userId,
+              kickedUserNickname: member.nickname
+            },
+            excludeUserIds: [userId] // 내보낸 멤버는 이미 개별 알림을 받았으므로 제외
+          });
+        }
+      } catch (notificationError) {
+        console.error('멤버 내보내기 알림 전송 실패:', notificationError);
+      }
 
       return res.status(200).json({
         resultCode: '200',
