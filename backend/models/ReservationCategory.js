@@ -1,4 +1,3 @@
-// backend/models/ReservationCategory.js
 const mongoose = require('mongoose');
 
 const reservationCategorySchema = new mongoose.Schema({
@@ -15,6 +14,11 @@ const reservationCategorySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  room: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Room',
+    required: true  // 방 ID 필수로 변경
+  },
   type: {
     type: String,
     enum: ['default', 'custom'],
@@ -24,7 +28,6 @@ const reservationCategorySchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // 방문객 카테고리 여부 추가
   isVisitor: {
     type: Boolean,
     default: false
@@ -33,8 +36,11 @@ const reservationCategorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// 기본 예약 카테고리 초기화 메서드
-reservationCategorySchema.statics.initializeDefaultCategories = async function(userId) {
+// 방별 카테고리 인덱스 추가
+reservationCategorySchema.index({ room: 1, name: 1 });
+
+// 기본 예약 카테고리 초기화 메서드 - 방별로 생성
+reservationCategorySchema.statics.initializeDefaultCategories = async function(userId, roomId) {
   const defaultCategories = [
     { name: '세탁기', icon: 'local_laundry_service', type: 'default', requiresApproval: false, isVisitor: false },
     { name: '욕실', icon: 'bathtub', type: 'default', requiresApproval: false, isVisitor: false },
@@ -43,8 +49,8 @@ reservationCategorySchema.statics.initializeDefaultCategories = async function(u
 
   for (const category of defaultCategories) {
     await this.findOneAndUpdate(
-      { name: category.name, type: 'default' },
-      { ...category, createdBy: userId },
+      { name: category.name, type: 'default', room: roomId },
+      { ...category, createdBy: userId, room: roomId },
       { upsert: true }
     );
   }

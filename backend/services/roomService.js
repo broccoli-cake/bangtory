@@ -4,6 +4,8 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const { generateRandomNickname, generateUniqueNicknameInRoom } = require('../utils/generateNickname');
 const crypto = require('crypto');
+const choreService = require('./choreService');
+const reservationService = require('./reservationService');
 
 // 유틸리티 함수들
 const utils = {
@@ -102,6 +104,17 @@ const roomService = {
       savedRoom.members.push(roomMember._id);
       await savedRoom.save();
 
+      // 기본 카테고리 생성 (새로 추가)
+      console.log('3. 기본 카테고리 생성 시작');
+      try {
+        await choreService.initializeDefaultCategories(ownerId, savedRoom._id);
+        await reservationService.initializeDefaultCategories(ownerId, savedRoom._id);
+        console.log('3. 기본 카테고리 생성 완료');
+      } catch (categoryError) {
+        console.error('기본 카테고리 생성 실패:', categoryError);
+        // 카테고리 생성 실패는 방 생성을 막지 않음 (경고만)
+      }
+
       return savedRoom;
     } catch (error) {
       console.error('방 생성 중 에러 발생:', error);
@@ -120,6 +133,7 @@ const roomService = {
    * @param {string} userId - 참여할 사용자 ID
    * @returns {Promise<Object>} 참여한 방 정보
    */
+  // joinRoom 메서드 수정 부분 (방 참여 시에도 해당 방의 카테고리 자동 이용 가능)
   async joinRoom(inviteCode, userId) {
     try {
       const existingMember = await RoomMember.findOne({ userId });
@@ -157,6 +171,8 @@ const roomService = {
       await roomMember.save();
       room.members.push(roomMember._id);
       await room.save();
+
+      // 참여자는 별도로 카테고리를 생성하지 않음 (방의 기존 카테고리 사용)
 
       return room;
     } catch (error) {

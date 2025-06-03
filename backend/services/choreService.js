@@ -1,12 +1,19 @@
 const ChoreCategory = require('../models/ChoreCategory');
+const RoomMember = require('../models/RoomMember');
 const { ChoreError } = require('../utils/errors');
 
 const choreService = {
   /**
-   * 카테고리 목록 조회 (생성 순서대로 정렬)
+   * 방별 카테고리 목록 조회 (생성 순서대로 정렬)
    */
-  async getCategories() {
-    return await ChoreCategory.find()
+  async getCategories(userId) {
+    // 사용자가 속한 방 찾기
+    const roomMember = await RoomMember.findOne({ userId });
+    if (!roomMember) {
+      throw new ChoreError('방에 참여한 후 이용할 수 있습니다.', 403);
+    }
+
+    return await ChoreCategory.find({ room: roomMember.roomId })
       .sort({
         type: 1,        // 기본 카테고리 먼저 (default < custom)
         createdAt: 1    // 생성시간 순 (오래된 것부터)
@@ -17,9 +24,26 @@ const choreService = {
    * 카테고리 생성
    */
   async createCategory(categoryData, userId) {
+    // 사용자가 속한 방 찾기
+    const roomMember = await RoomMember.findOne({ userId });
+    if (!roomMember) {
+      throw new ChoreError('방에 참여한 후 카테고리를 생성할 수 있습니다.', 403);
+    }
+
+    // 방 내에서 중복 이름 확인
+    const existingCategory = await ChoreCategory.findOne({
+      room: roomMember.roomId,
+      name: categoryData.name
+    });
+
+    if (existingCategory) {
+      throw new ChoreError('이미 존재하는 카테고리 이름입니다.', 400);
+    }
+
     const category = new ChoreCategory({
       ...categoryData,
-      createdBy: userId
+      createdBy: userId,
+      room: roomMember.roomId
     });
     return await category.save();
   },
@@ -29,13 +53,23 @@ const choreService = {
    */
   async deleteCategory(categoryId, userId) {
     const category = await ChoreCategory.findById(categoryId);
-    
+
     if (!category) {
       throw new ChoreError('카테고리를 찾을 수 없습니다.', 404);
     }
 
     if (category.type === 'default') {
       throw new ChoreError('기본 카테고리는 삭제할 수 없습니다.', 400);
+    }
+
+    // 사용자가 속한 방인지 확인
+    const roomMember = await RoomMember.findOne({
+      userId,
+      roomId: category.room
+    });
+
+    if (!roomMember) {
+      throw new ChoreError('해당 방의 멤버만 카테고리를 삭제할 수 있습니다.', 403);
     }
 
     if (category.createdBy.toString() !== userId.toString()) {
@@ -46,11 +80,11 @@ const choreService = {
   },
 
   /**
-   * 기본 카테고리 초기화
+   * 방별 기본 카테고리 초기화
    */
-  async initializeDefaultCategories(userId) {
-    await ChoreCategory.initializeDefaultCategories(userId);
+  async initializeDefaultCategories(userId, roomId) {
+    await ChoreCategory.initializeDefaultCategories(userId, roomId);
   }
 };
 
-module.exports = choreService; 
+module.exports = choreService;

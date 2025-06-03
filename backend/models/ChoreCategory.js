@@ -14,6 +14,11 @@ const choreCategorySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  room: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Room',
+    required: true  // 방 ID 필수로 변경
+  },
   type: {
     type: String,
     enum: ['default', 'custom'],
@@ -23,8 +28,11 @@ const choreCategorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// 기본 카테고리 초기화 메서드
-choreCategorySchema.statics.initializeDefaultCategories = async function(userId) {
+// 방별 카테고리 인덱스 추가
+choreCategorySchema.index({ room: 1, name: 1 });
+
+// 기본 카테고리 초기화 메서드 - 방별로 생성
+choreCategorySchema.statics.initializeDefaultCategories = async function(userId, roomId) {
   const defaultCategories = [
     { name: '청소', icon: 'cleaning_services', type: 'default' },
     { name: '분리수거', icon: 'delete_outline', type: 'default' },
@@ -33,11 +41,11 @@ choreCategorySchema.statics.initializeDefaultCategories = async function(userId)
 
   for (const category of defaultCategories) {
     await this.findOneAndUpdate(
-      { name: category.name, type: 'default' },
-      { ...category, createdBy: userId },
+      { name: category.name, type: 'default', room: roomId },
+      { ...category, createdBy: userId, room: roomId },
       { upsert: true }
     );
   }
 };
 
-module.exports = mongoose.model('ChoreCategory', choreCategorySchema); 
+module.exports = mongoose.model('ChoreCategory', choreCategorySchema);

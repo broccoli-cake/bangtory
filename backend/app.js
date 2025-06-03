@@ -288,16 +288,18 @@ io.on('connection', (socket) => {
 // Socket.IO 인스턴스를 app에 저장 (다른 라우트에서 사용할 수 있도록)
 app.set('socketio', io);
 
-// 집안일 기본 카테고리 초기화 (기본 사용자 ID 사용)
-const DEFAULT_USER_ID = '000000000000000000000000'; // 기본 사용자 ID
-choreService.initializeDefaultCategories(DEFAULT_USER_ID)
-  .then(() => console.log('집안일 기본 카테고리 초기화 완료'))
-  .catch(err => console.error('집안일 기본 카테고리 초기화 실패:', err));
+// ❌ 기존 전역 카테고리 초기화 코드 제거
+// const DEFAULT_USER_ID = '000000000000000000000000'; // 기본 사용자 ID
+// choreService.initializeDefaultCategories(DEFAULT_USER_ID)
+//   .then(() => console.log('집안일 기본 카테고리 초기화 완료'))
+//   .catch(err => console.error('집안일 기본 카테고리 초기화 실패:', err));
 
-// 예약 기본 카테고리 초기화
-reservationService.initializeDefaultCategories(DEFAULT_USER_ID)
-  .then(() => console.log('예약 기본 카테고리 초기화 완료'))
-  .catch(err => console.error('예약 기본 카테고리 초기화 실패:', err));
+// reservationService.initializeDefaultCategories(DEFAULT_USER_ID)
+//   .then(() => console.log('예약 기본 카테고리 초기화 완료'))
+//   .catch(err => console.error('예약 기본 카테고리 초기화 실패:', err));
+
+// ✅ 방별 카테고리는 방 생성 시 자동으로 생성됨
+console.log('방별 카테고리는 방 생성/참여 시 자동으로 관리됩니다.');
 
 // 기본 라우트
 app.get('/', (req, res) => {
