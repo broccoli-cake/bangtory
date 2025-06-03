@@ -14,7 +14,6 @@ const notificationService = {
     title,
     message,
     relatedData = null,
-    io = null
   }) {
     try {
       const notification = new Notification({
@@ -36,18 +35,29 @@ const notificationService = {
         .populate('roomId', 'roomName');
 
       // Socket.IO를 통해 실시간 알림 전송
-      if (io) {
-        io.to(`user_${userId}`).emit('notification', {
-          id: populatedNotification._id,
-          type: populatedNotification.type,
-          title: populatedNotification.title,
-          message: populatedNotification.message,
-          fromUser: populatedNotification.fromUserId?.name || null,
-          roomName: populatedNotification.roomId?.roomName || null,
-          relatedData: populatedNotification.relatedData,
-          createdAt: populatedNotification.createdAt,
-          isRead: populatedNotification.isRead
-        });
+      try {
+        const io = require('../app').io; // app.js에서 io 인스턴스 가져오기
+        if (io) {
+          const notificationData = {
+            id: populatedNotification._id,
+            type: populatedNotification.type,
+            title: populatedNotification.title,
+            message: populatedNotification.message,
+            fromUser: populatedNotification.fromUserId?.name || null,
+            roomName: populatedNotification.roomId?.roomName || null,
+            relatedData: populatedNotification.relatedData,
+            createdAt: populatedNotification.createdAt,
+            isRead: populatedNotification.isRead
+          };
+
+          // 일반 알림 전송
+          io.emit('notification', notificationData);
+
+          // 사용자별 알림 전송
+          io.to(`user_${userId}`).emit('user_notification', notificationData);
+        }
+      } catch (socketError) {
+        console.error('실시간 알림 전송 실패:', socketError);
       }
 
       return populatedNotification;
@@ -67,7 +77,6 @@ const notificationService = {
     title,
     message,
     relatedData = null,
-    io = null,
     excludeUserIds = []
   }) {
     try {
@@ -94,8 +103,7 @@ const notificationService = {
           type,
           title,
           message,
-          relatedData,
-          io
+          relatedData
         });
 
         notifications.push(notification);
@@ -104,6 +112,34 @@ const notificationService = {
       return notifications;
     } catch (error) {
       console.error('방 멤버 알림 전송 오류:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 특정 사용자에게 개별 알림 전송
+   */
+  async notifyUser({
+    userId,
+    fromUserId = null,
+    roomId,
+    type,
+    title,
+    message,
+    relatedData = null
+  }) {
+    try {
+      return await this.createNotification({
+        userId,
+        fromUserId,
+        roomId,
+        type,
+        title,
+        message,
+        relatedData
+      });
+    } catch (error) {
+      console.error('개별 사용자 알림 전송 오류:', error);
       throw error;
     }
   },

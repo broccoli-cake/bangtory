@@ -19,6 +19,7 @@ const reservationService = require('./services/reservationService'); // 예약 �
 const chatRoutes = require('./routes/chatRoutes'); // 채팅 라우트 추가
 const ChatMessage = require('./models/ChatMessage'); // 채팅 메시지 모델 추가
 const RoomMember = require('./models/RoomMember'); // 룸 멤버 모델 추가
+const notificationRoutes = require('./routes/notificationRoutes'); // 알림 라우트 추가
 
 // Express 애플리케이션 인스턴스 생성
 const app = express();
@@ -66,6 +67,7 @@ app.use('/chores', choreRoutes);
 app.use('/chores/schedules', choreScheduleRoutes);
 app.use('/reservations', reservationRoutes); // 예약 라우트 추가
 app.use('/chat', chatRoutes); // 채팅 라우트 추가
+app.use('/notifications', notificationRoutes);
 
 // Socket.IO 연결 처리
 const roomSockets = new Map(); // 방별 소켓 관리
@@ -288,17 +290,24 @@ io.on('connection', (socket) => {
 // Socket.IO 인스턴스를 app에 저장 (다른 라우트에서 사용할 수 있도록)
 app.set('socketio', io);
 
-// ❌ 기존 전역 카테고리 초기화 코드 제거
-// const DEFAULT_USER_ID = '000000000000000000000000'; // 기본 사용자 ID
-// choreService.initializeDefaultCategories(DEFAULT_USER_ID)
-//   .then(() => console.log('집안일 기본 카테고리 초기화 완료'))
-//   .catch(err => console.error('집안일 기본 카테고리 초기화 실패:', err));
+// 알림 소켓 네임스페이스 추가
+const notificationNamespace = io.of('/notifications');
+notificationNamespace.on('connection', (socket) => {
+  console.log('알림 소켓 연결:', socket.id);
 
-// reservationService.initializeDefaultCategories(DEFAULT_USER_ID)
-//   .then(() => console.log('예약 기본 카테고리 초기화 완료'))
-//   .catch(err => console.error('예약 기본 카테고리 초기화 실패:', err));
+  // 사용자 방에 참여
+  socket.on('join-user-room', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`사용자 ${userId}가 알림 채널에 참여`);
+  });
 
-// ✅ 방별 카테고리는 방 생성 시 자동으로 생성됨
+  // 연결 해제
+  socket.on('disconnect', () => {
+    console.log('알림 소켓 연결 해제:', socket.id);
+  });
+}
+
+// 방별 카테고리는 방 생성 시 자동으로 생성됨
 console.log('방별 카테고리는 방 생성/참여 시 자동으로 관리됩니다.');
 
 // 기본 라우트

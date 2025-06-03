@@ -6,6 +6,7 @@ const { generateRandomNickname, generateUniqueNicknameInRoom } = require('../uti
 const crypto = require('crypto');
 const choreService = require('./choreService');
 const reservationService = require('./reservationService');
+const notificationService = require('./notificationService');
 
 // 유틸리티 함수들
 const utils = {
@@ -115,7 +116,24 @@ const roomService = {
         // 카테고리 생성 실패는 방 생성을 막지 않음 (경고만)
       }
 
-      return savedRoom;
+      try {
+          // 방 생성 성공 시 본인에게 알림
+          if (savedRoom) {
+            await notificationService.notifyUser({
+              userId: ownerId,
+              roomId: savedRoom._id,
+              type: 'room_created',
+              title: '방 생성 완료',
+              message: `'${savedRoom.roomName}' 방이 성공적으로 생성되었습니다.`,
+              relatedData: { roomId: savedRoom._id }
+            });
+          }
+        } catch (notificationError) {
+          console.error('방 생성 알림 전송 실패:', notificationError);
+        }
+
+        return savedRoom;
+
     } catch (error) {
       console.error('방 생성 중 에러 발생:', error);
       // Room이 생성되었는데 다른 작업이 실패한 경우 Room 삭제
@@ -174,7 +192,25 @@ const roomService = {
 
       // 참여자는 별도로 카테고리를 생성하지 않음 (방의 기존 카테고리 사용)
 
-      return room;
+      try {
+          if (room && roomMember) {
+            // 방의 다른 멤버들에게 새 멤버 참여 알림
+            const user = await User.findById(userId);
+            await notificationService.notifyRoomMembers({
+              roomId: room._id,
+              fromUserId: userId,
+              type: 'member_joined',
+              title: '새 멤버 참여',
+              message: `${roomMember.nickname}님이 방에 참여했습니다.`,
+              relatedData: { userId, nickname: roomMember.nickname }
+            });
+          }
+        } catch (notificationError) {
+          console.error('방 참여 알림 전송 실패:', notificationError);
+        }
+
+        return room;
+
     } catch (error) {
       throw error;
     }
@@ -389,6 +425,42 @@ const roomService = {
     } catch (error) {
       throw error;
     }
+
+    try {
+        // 새로운 방장에게 알림
+        await notificationService.notifyUser({
+          userId: newOwnerId,
+          fromUserId: currentOwnerId,
+          roomId: roomId,
+          type: 'ownership_transferred',
+          title: '방장 위임',
+          message: '방장으로 위임되었습니다.',
+          relatedData: { previousOwnerId: currentOwnerId }
+        });
+
+        // 다른 멤버들에게 방장 변경 알림
+        const [currentOwner, newOwner] = await Promise.all([
+          RoomMember.findOne({ roomId, userId: currentOwnerId }),
+          RoomMember.findOne({ roomId, userId: newOwnerId })
+        ]);
+
+        await notificationService.notifyRoomMembers({
+          roomId: roomId,
+          fromUserId: currentOwnerId,
+          type: 'ownership_transferred',
+          title: '방장 변경',
+          message: `방장이 ${newOwner?.nickname || '새 멤버'}님으로 변경되었습니다.`,
+          relatedData: {
+            previousOwnerId: currentOwnerId,
+            newOwnerId: newOwnerId,
+            previousOwnerNickname: currentOwner?.nickname,
+            newOwnerNickname: newOwner?.nickname
+          },
+          excludeUserIds: [newOwnerId] // 새 방장은 이미 개별 알림을 받았으므로 제외
+        });
+      } catch (notificationError) {
+        console.error('방장 위임 알림 전송 실패:', notificationError);
+      }
   },
 
   async kickMember(roomId, userId, ownerId) {
@@ -407,6 +479,63 @@ const roomService = {
 
     // 4. Room의 members 배열에서도 제거
     await Room.findByIdAndUpdate(roomId, { $pull: { members: member._id } });
+
+  try {
+      const member = await RoomMember.findOne({ roomId, userId });
+
+      if (member) {
+        // 내보낸 멤버에게 알림
+        await notificationService.notifyUser({
+          userId: userId,
+          fromUserId: ownerId,
+          roomId: roomId,
+          type: 'member_kicked',
+          title: '방에서 내보내짐',
+          message: '방에서 내보내졌습니다.',
+          relatedData: { kickedByOwnerId: ownerId }
+        });
+
+        // 다른 멤버들에게 알림
+        await notificationService.notifyRoomMembers({
+          roomId: roomId,
+          fromUserId: ownerId,
+          type: 'member_kicked',
+          title: '멤버 내보내기',
+          message: `${member.nickname}님이 방에서 내보내졌습니다.`,
+          relatedData: {
+            kickedUserId: userId,
+            kickedUserNickname: member.nickname
+          },
+          excludeUserIds: [userId] // 내보낸 멤버는 이미 개별 알림을 받았으므로 제외
+        });
+      }
+    } catch (notificationError) {
+      console.error('멤버 내보내기 알림 전송 실패:', notificationError);
+    }
+  },
+
+  // 방 나가기 시 알림 (기존 leaveRoom 메서드에 추가)
+  async leaveRoom(userId) {
+    // ... 기존 방 나가기 로직 ...
+
+    try {
+      if (roomMember && room) {
+        // 다른 멤버들에게 나간 멤버 알림
+        await notificationService.notifyRoomMembers({
+          roomId: room._id,
+          fromUserId: userId,
+          type: 'member_left',
+          title: '멤버 나감',
+          message: `${roomMember.nickname}님이 방을 나갔습니다.`,
+          relatedData: {
+            leftUserId: userId,
+            leftUserNickname: roomMember.nickname
+          }
+        });
+      }
+    } catch (notificationError) {
+      console.error('방 나가기 알림 전송 실패:', notificationError);
+    }
   },
 
   /**
