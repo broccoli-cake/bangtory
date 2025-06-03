@@ -49,6 +49,9 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
         date: selectedDate,
       );
 
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
+
       setState(() {
         selectedPersonId = null;
       });
@@ -90,29 +93,28 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
     }
   }
 
-  // 완료/완료 해제 토글 함수 (수정됨)
+  // 완료/완료 해제 토글 함수
   Future<void> _toggleCompleteDuty(Map<String, dynamic> schedule) async {
     final appState = Provider.of<AppState>(context, listen: false);
     final isCompleted = schedule['isCompleted'] ?? false;
 
     try {
       if (isCompleted) {
-        // 완료 해제
         await appState.uncompleteChoreSchedule(schedule['_id']);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('일정 완료가 해제되었습니다.')),
         );
       } else {
-        // 완료 처리
         await appState.completeChoreSchedule(schedule['_id']);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('일정이 완료되었습니다.')),
         );
       }
 
-      // 데이터 새로고침
-      await _loadData();
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
 
+      await _loadData();
     } catch (e) {
       final action = isCompleted ? '완료 해제' : '완료 처리';
       ScaffoldMessenger.of(context).showSnackBar(

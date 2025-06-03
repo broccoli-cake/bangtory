@@ -75,6 +75,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         address: address.isNotEmpty ? address : null,
       );
 
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('방 정보가 수정되었습니다.'),
@@ -124,6 +127,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     try {
       await appState.transferOwnership(newOwnerId);
+
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -177,6 +183,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     try {
       await appState.kickMember(userId);
+
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

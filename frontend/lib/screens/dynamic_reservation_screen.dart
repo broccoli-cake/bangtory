@@ -160,6 +160,9 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
         });
       }
 
+      // 예약 등록 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.category['name']} 예약이 등록되었습니다.'),
@@ -210,6 +213,9 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
     try {
       final result = await appState.approveReservation(reservation['_id']);
 
+      // 성공 후 알림 개수 업데이트
+      await appState.loadUnreadNotificationCount();
+
       final remainingApprovals = result['remainingApprovals'] ?? 0;
 
       if (remainingApprovals > 0) {
@@ -236,6 +242,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       );
     }
   }
+
 
   // 승인자 목록 위젯
   Widget _buildApprovalList(List approvedBy) {

@@ -41,9 +41,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _navigateToScreen(const GoRoomScreen());
       } else {
         // 사용자와 방 모두 있으면 홈 화면으로
+        // 알림 개수도 로드
+        await appState.loadUnreadNotificationCount();
+
         _navigateToScreen(HomeScreen(
           roomName: appState.currentRoom!.roomName,
-          userName: appState.currentUser!.name, // nickname -> name으로 변경
+          userName: appState.currentUser!.name,
         ));
       }
     } catch (e) {
@@ -54,6 +57,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
     }
   }
+
 
   void _navigateToScreen(Widget screen) {
     if (mounted) {

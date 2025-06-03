@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../models/room_model.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class AppState extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -19,6 +20,7 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _visitorReservations = [];
   List<Map<String, dynamic>> _pendingReservations = [];
   Map<String, List<Map<String, dynamic>>> _categoryReservations = {};
+  int _unreadNotificationCount = 0;
 
   UserModel? get currentUser => _currentUser;
   UserProfileModel? get currentUserProfile => _currentUserProfile;
@@ -33,11 +35,33 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> get visitorReservations => _visitorReservations;
   List<Map<String, dynamic>> get pendingReservations => _pendingReservations;
   Map<String, List<Map<String, dynamic>>> get categoryReservations => _categoryReservations;
+  int get unreadNotificationCount => _unreadNotificationCount;
 
   void setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
+
+  // 읽지 않은 알림 개수 업데이트
+  void updateUnreadNotificationCount(int count) {
+    _unreadNotificationCount = count;
+    notifyListeners();
+  }
+
+  // 읽지 않은 알림 개수 로드
+  Future<void> loadUnreadNotificationCount() async {
+    if (_currentUser == null) return;
+
+    try {
+      final notificationService = NotificationService();
+      notificationService.setUserId(_currentUser!.id);
+      _unreadNotificationCount = await notificationService.getUnreadCount();
+      notifyListeners();
+    } catch (e) {
+      print('읽지 않은 알림 개수 로드 실패: $e');
+    }
+  }
+
 
   // ===== 사용자 관련 =====
 
@@ -63,6 +87,7 @@ class AppState extends ChangeNotifier {
         _apiService.setUserId(userId);
         _currentUser = await _apiService.getMyInfo();
         await loadRoom();
+        await loadUnreadNotificationCount(); // 추가
         notifyListeners();
       } catch (e) {
         print('Load user error: $e');
@@ -695,6 +720,7 @@ class AppState extends ChangeNotifier {
     _pendingReservations = [];
     _categoryReservations = {};
     _roomMembers = [];
+    _unreadNotificationCount = 0;
 
     // API 서비스의 사용자 ID도 초기화
     _apiService.setUserId('');

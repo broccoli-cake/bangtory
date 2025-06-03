@@ -1,4 +1,4 @@
-// frontend/lib/screens/notification_screen.dart
+// frontend/lib/screens/notification_screen.dart - 완전히 새로운 버전
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/notification_model.dart';
@@ -146,6 +146,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
         _unreadCount = (_unreadCount - 1).clamp(0, _unreadCount);
       });
+
+      // AppState의 읽지 않은 알림 개수도 업데이트
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.updateUnreadNotificationCount(_unreadCount);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -176,6 +180,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ).toList();
         _unreadCount = 0;
       });
+
+      // AppState의 읽지 않은 알림 개수도 업데이트
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.updateUnreadNotificationCount(0);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

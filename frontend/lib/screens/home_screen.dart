@@ -10,7 +10,7 @@ import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart' as calendar_room;
 import 'package:frontend/screens/chat_screen.dart';
 import 'package:frontend/screens/full_schedule_screen.dart';
-import '../screens/chat_screen.dart';
+import '../screens/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 카테고리 추가 다이얼로그 (IconUtils 사용)
+  // 카테고리 추가 다이얼로그 (IconUtils 사용) - 카테고리 추가 후 알림 개수 업데이트
   void _showAddCategoryDialog(bool isChore) {
     String selectedIconName = 'category';
     TextEditingController nameController = TextEditingController();
@@ -328,6 +328,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: selectedIconName,
                         );
                       }
+
+                      // 성공 후 알림 개수 업데이트
+                      await appState.loadUnreadNotificationCount();
 
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -766,13 +769,49 @@ class _HomeScreenState extends State<HomeScreen> {
               await _loadCategories();
               await _loadRoomMembers();
               await _loadUserProfile();
-              await _loadTodaySchedules(); // 오늘 일정도 새로고침
+              await _loadTodaySchedules();
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black),
-            onPressed: () {
-              // 알림 처리
+          Consumer<AppState>(
+            builder: (context, appState, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                      );
+                    },
+                  ),
+                  if (appState.unreadNotificationCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFA2E55),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${appState.unreadNotificationCount > 99 ? '99+' : appState.unreadNotificationCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],

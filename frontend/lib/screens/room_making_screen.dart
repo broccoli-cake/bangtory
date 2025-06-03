@@ -39,6 +39,9 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         address: _addressController.text.trim(),
       );
 
+      // 방 생성 후 알림 개수 로드
+      await appState.loadUnreadNotificationCount();
+
       // 방 생성 성공 시 홈 화면으로 이동
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -46,10 +49,10 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
           MaterialPageRoute(
             builder: (context) => HomeScreen(
               roomName: roomName,
-              userName: appState.currentUser?.name ?? '사용자', // nickname -> name으로 변경
+              userName: appState.currentUser?.name ?? '사용자',
             ),
           ),
-              (route) => false, // 모든 이전 화면 제거
+              (route) => false,
         );
       }
     } catch (e) {

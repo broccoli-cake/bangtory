@@ -254,4 +254,42 @@ class ChatService {
     await Future.delayed(const Duration(seconds: 1));
     await connect(serverUrl);
   }
+
+  // 알림 Socket.IO 연결 추가
+  Future<void> connectNotifications(String serverUrl, String userId) async {
+    try {
+      final notificationSocket = IO.io('$serverUrl/notifications', <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': false,
+        'forceNew': true,
+      });
+
+      notificationSocket?.on('connect', (_) {
+        print('알림 소켓 연결 성공');
+        // 사용자별 알림 채널에 참여
+        notificationSocket.emit('join-user-room', userId);
+      });
+
+      notificationSocket?.on('user_notification', (data) {
+        print('실시간 알림 수신: $data');
+        // 알림 처리 로직 (AppState 업데이트 등)
+        _handleRealTimeNotification(data);
+      });
+
+      notificationSocket?.on('notification', (data) {
+        print('일반 알림 수신: $data');
+        _handleRealTimeNotification(data);
+      });
+
+      notificationSocket?.connect();
+    } catch (e) {
+      print('알림 소켓 연결 실패: $e');
+    }
+  }
+
+  void _handleRealTimeNotification(dynamic data) {
+    // 실시간 알림 처리 로직
+    // 플러터 로컬 알림이나 스낵바 표시 등
+    print('알림 처리: $data');
+  }
 }

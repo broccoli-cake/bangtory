@@ -34,6 +34,9 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
     try {
       await appState.joinRoom(inviteCode);
 
+      // 방 참여 후 알림 개수 로드
+      await appState.loadUnreadNotificationCount();
+
       // 방 참여 성공 시 홈 화면으로 이동
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -41,10 +44,10 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
           MaterialPageRoute(
             builder: (context) => HomeScreen(
               roomName: appState.currentRoom?.roomName ?? '방',
-              userName: appState.currentUser?.name ?? '사용자', // nickname -> name으로 변경
+              userName: appState.currentUser?.name ?? '사용자',
             ),
           ),
-              (route) => false, // 모든 이전 화면 제거
+              (route) => false,
         );
       }
     } catch (e) {
