@@ -11,6 +11,12 @@ class ChatService {
   IO.Socket? _socket;
   bool _isConnected = false;
 
+  // 메시지 중복 방지를 위한 Set
+  final Set<String> _receivedMessageIds = <String>{};
+
+  // 메시지 전송 중복 방지를 위한 Map
+  final Map<String, bool> _sendingMessages = <String, bool>{};
+
   // 콜백 함수들을 안전하게 관리하기 위한 리스트
   final List<VoidCallback> _connectCallbacks = [];
   final List<VoidCallback> _disconnectCallbacks = [];
@@ -21,14 +27,24 @@ class ChatService {
   // 소켓 연결
   Future<void> connect(String serverUrl) async {
     try {
+      // 기존 연결이 있으면 정리
+      if (_socket != null) {
+        _socket?.disconnect();
+        _socket?.dispose();
+        _socket = null;
+      }
+
       _socket = IO.io(serverUrl, <String, dynamic>{
         'transports': ['websocket'],
         'autoConnect': false,
+        'forceNew': true, // 새로운 연결 강제
       });
 
       _socket?.on('connect', (_) {
         print('소켓 연결 성공');
         _isConnected = true;
+        _receivedMessageIds.clear(); // 연결 시 메시지 ID 초기화
+        _sendingMessages.clear(); // 전송 중 메시지 초기화
 
         // 안전한 콜백 실행
         _safeExecuteCallbacks(_connectCallbacks);
@@ -44,6 +60,24 @@ class ChatService {
 
       _socket?.on('message', (data) {
         print('메시지 수신: $data');
+
+        // 중복 메시지 체크
+        if (data is Map<String, dynamic>) {
+          final messageId = data['id']?.toString();
+          if (messageId != null) {
+            if (_receivedMessageIds.contains(messageId)) {
+              print('중복 메시지 무시: $messageId');
+              return;
+            }
+            _receivedMessageIds.add(messageId);
+
+            // 메모리 관리: 100개 이상일 때 오래된 것 제거
+            if (_receivedMessageIds.length > 100) {
+              final oldIds = _receivedMessageIds.take(20).toList();
+              _receivedMessageIds.removeAll(oldIds);
+            }
+          }
+        }
 
         // 안전한 메시지 콜백 실행
         _safeExecuteMessageCallbacks(data);
@@ -160,22 +194,42 @@ class ChatService {
     _messageCallbacks.clear();
   }
 
-  // 메시지 전송
+  // 메시지 전송 (중복 방지 로직 추가)
   Future<void> sendMessage({
     required String message,
     required String roomId,
     required String userId,
   }) async {
-    if (_socket != null && _isConnected) {
+    if (!_isConnected || _socket == null) {
+      print('소켓이 연결되지 않아 메시지를 전송할 수 없습니다.');
+      throw Exception('소켓 연결 없음');
+    }
+
+    // 중복 전송 방지
+    final messageKey = '$roomId:$userId:$message:${DateTime.now().millisecondsSinceEpoch ~/ 1000}';
+    if (_sendingMessages.containsKey(messageKey)) {
+      print('이미 전송 중인 메시지: $messageKey');
+      return;
+    }
+
+    _sendingMessages[messageKey] = true;
+
+    try {
       _socket?.emit('message', {
         'text': message,
         'roomId': roomId,
         'userId': userId,
         'timestamp': DateTime.now().toIso8601String(),
       });
-    } else {
-      print('소켓이 연결되지 않아 메시지를 전송할 수 없습니다.');
-      throw Exception('소켓 연결 없음');
+
+      // 전송 완료 후 1초 뒤에 키 제거
+      Timer(const Duration(seconds: 1), () {
+        _sendingMessages.remove(messageKey);
+      });
+
+    } catch (e) {
+      _sendingMessages.remove(messageKey);
+      rethrow;
     }
   }
 
@@ -188,6 +242,10 @@ class ChatService {
 
     // 모든 리스너 정리
     removeAllListeners();
+
+    // 메시지 관련 데이터 정리
+    _receivedMessageIds.clear();
+    _sendingMessages.clear();
   }
 
   // 재연결 시도

@@ -15,8 +15,10 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
   late ChatService _chatService;
   bool _isConnected = false;
   bool _isConnecting = false;
+  bool _isLoadingMessages = false;
 
   final List<Map<String, dynamic>> _messages = [];
+  final Set<String> _messageIds = <String>{}; // 중복 메시지 방지
 
   @override
   void initState() {
@@ -65,15 +67,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
 
       _chatService.onMessage((message) {
         if (mounted) {
-          setState(() {
-            _messages.add({
-              'text': message['text'] ?? '',
-              'isMe': false, // 서버에서 온 메시지는 일단 false로 처리
-              'timestamp': DateTime.now(),
-              'userId': message['userId'],
-              'userNickname': message['userNickname'],
-            });
-          });
+          _addMessageSafely(message);
         }
       });
 
@@ -90,6 +84,45 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
         _showErrorSnackBar('채팅 연결에 실패했습니다. 다시 시도해주세요.');
       }
     }
+  }
+
+  // 메시지 안전하게 추가 (중복 방지)
+  void _addMessageSafely(Map<String, dynamic> message) {
+    final messageId = message['id']?.toString();
+    final messageText = message['text']?.toString() ?? '';
+    final userId = message['userId']?.toString();
+    final timestamp = message['timestamp']?.toString();
+
+    // 고유 키 생성 (id가 없는 경우 다른 필드들로 생성)
+    final uniqueKey = messageId ?? '$userId:$messageText:$timestamp';
+
+    if (_messageIds.contains(uniqueKey)) {
+      print('중복 메시지 무시: $uniqueKey');
+      return;
+    }
+
+    _messageIds.add(uniqueKey);
+
+    // 메모리 관리
+    if (_messageIds.length > 200) {
+      final oldIds = _messageIds.take(50).toList();
+      _messageIds.removeAll(oldIds);
+    }
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final currentUserId = appState.currentUser?.id;
+
+    setState(() {
+      _messages.add({
+        'id': uniqueKey,
+        'text': messageText,
+        'isMe': userId == currentUserId,
+        'timestamp': DateTime.tryParse(timestamp ?? '') ?? DateTime.now(),
+        'userId': userId,
+        'userNickname': message['userNickname'],
+        'status': 'received',
+      });
+    });
   }
 
   // 현재 방에 참여하는 로직
@@ -115,6 +148,10 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
         );
 
         print('방 참여 성공');
+
+        // 방 참여 후 기존 메시지 기록 로드
+        await _loadMessageHistory();
+
       } catch (e) {
         print('방 참여 오류: $e');
         _showErrorSnackBar('방 참여에 실패했습니다.');
@@ -122,6 +159,53 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
     } else {
       print('방 정보 또는 사용자 정보가 없습니다.');
       _showErrorSnackBar('방 정보를 불러올 수 없습니다.');
+    }
+  }
+
+  // 메시지 기록 로드
+  Future<void> _loadMessageHistory() async {
+    if (_isLoadingMessages) return;
+
+    setState(() {
+      _isLoadingMessages = true;
+    });
+
+    try {
+      final appState = Provider.of<AppState>(context, listen: false);
+      if (appState.currentRoom == null) return;
+
+      final messages = await appState.apiService.getChatMessages(
+        roomId: appState.currentRoom!.roomId,
+        page: 1,
+        limit: 50,
+      );
+
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messageIds.clear();
+        });
+
+        // 기존 메시지들을 안전하게 추가
+        for (final message in messages) {
+          _addMessageSafely({
+            'id': message['id'],
+            'text': message['message'],
+            'userId': message['userId'],
+            'userNickname': message['username'],
+            'timestamp': message['timestamp'],
+          });
+        }
+      }
+    } catch (e) {
+      print('메시지 기록 로드 오류: $e');
+      // 오류가 발생해도 채팅은 계속 사용할 수 있도록 함
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMessages = false;
+        });
+      }
     }
   }
 
@@ -161,7 +245,9 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
     }
 
     // 즉시 UI 업데이트 (낙관적 업데이트)
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final newMessage = {
+      'id': tempId,
       'text': text,
       'isMe': true,
       'timestamp': DateTime.now(),
@@ -169,10 +255,14 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
       'userId': appState.currentUser!.id,
     };
 
-    setState(() {
-      _messages.add(newMessage);
-      _controller.clear();
-    });
+    // 중복 방지를 위해 메시지 ID 추가
+    if (!_messageIds.contains(tempId)) {
+      _messageIds.add(tempId);
+      setState(() {
+        _messages.add(newMessage);
+        _controller.clear();
+      });
+    }
 
     try {
       await _chatService.sendMessage(
@@ -184,10 +274,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
       // 전송 성공 시 상태 업데이트
       if (mounted) {
         setState(() {
-          final index = _messages.indexWhere((msg) =>
-          msg['text'] == text &&
-              msg['status'] == 'sending' &&
-              msg['userId'] == appState.currentUser!.id);
+          final index = _messages.indexWhere((msg) => msg['id'] == tempId);
           if (index != -1) {
             _messages[index]['status'] = 'sent';
           }
@@ -199,10 +286,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
       // 전송 실패 시 상태 업데이트
       if (mounted) {
         setState(() {
-          final index = _messages.indexWhere((msg) =>
-          msg['text'] == text &&
-              msg['status'] == 'sending' &&
-              msg['userId'] == appState.currentUser!.id);
+          final index = _messages.indexWhere((msg) => msg['id'] == tempId);
           if (index != -1) {
             _messages[index]['status'] = 'failed';
           }
@@ -230,6 +314,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
           ),
         );
       case 'sent':
+      case 'received':
         return const Icon(
           Icons.check,
           size: 12,
@@ -311,6 +396,11 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
               onPressed: _initializeChat,
               tooltip: '다시 연결',
             ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: _loadMessageHistory,
+            tooltip: '메시지 기록 새로고침',
+          ),
         ],
       ),
       body: Column(
@@ -364,6 +454,30 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+
+          // 메시지 로딩 인디케이터
+          if (_isLoadingMessages)
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: Colors.blue.shade50,
+              child: const Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    '메시지 기록을 불러오는 중...',
+                    style: TextStyle(fontSize: 12, color: Colors.blue),
+                  ),
                 ],
               ),
             ),
