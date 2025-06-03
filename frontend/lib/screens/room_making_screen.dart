@@ -79,7 +79,7 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    '방 이름을 정해주세요.',
+                    '방 정보를 설정해 주세요.',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 30),

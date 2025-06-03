@@ -10,6 +10,7 @@ import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart' as calendar_room;
 import 'package:frontend/screens/chat_screen.dart';
 import 'package:frontend/screens/full_schedule_screen.dart';
+import '../screens/chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -1104,7 +1105,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else if (index == 3) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ChatRoomScreen()),
+          MaterialPageRoute(builder: (_) => const ChatRoomScreenWithSocket()),
         );
       } else if (index == 4) {
         Navigator.push(

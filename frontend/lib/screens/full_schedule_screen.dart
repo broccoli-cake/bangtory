@@ -524,7 +524,7 @@ class _FullScheduleScreenState extends State<FullScheduleScreen> {
         } else if (index == 3) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ChatRoomScreen()),
+            MaterialPageRoute(builder: (_) => const ChatRoomScreenWithSocket()),
           );
         } else if (index == 4) {
           Navigator.push(
