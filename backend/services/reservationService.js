@@ -30,7 +30,7 @@ const reservationService = {
    */
   async deleteCategory(categoryId, userId) {
     const category = await ReservationCategory.findById(categoryId);
-    
+
     if (!category) {
       throw new ReservationError('카테고리를 찾을 수 없습니다.', 404);
     }

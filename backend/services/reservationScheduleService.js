@@ -103,72 +103,178 @@ const reservationScheduleService = {
   },
 
   /**
-   * 방문객 예약 조회 - 실시간 멤버 수 기반 승인 상태 계산
-   */
-  async getVisitorReservations(roomId) {
-    const query = {
-      room: roomId,
-      specificDate: { $exists: true }
-    };
+     * 방문객 예약 조회 - 실시간 멤버 수 기반 승인 상태 계산 (수정됨)
+     */
+    async getVisitorReservations(roomId) {
+      const query = {
+        room: roomId,
+        specificDate: { $exists: true }
+      };
 
-    const schedules = await ReservationSchedule.find(query)
+      const schedules = await ReservationSchedule.find(query)
+        .populate({
+          path: 'category',
+          select: 'name icon isVisitor',
+          match: { isVisitor: true }
+        })
+        .populate('reservedBy', 'name')
+        .sort({ specificDate: 1, startHour: 1 });
+
+      const visitorReservations = schedules.filter(schedule => schedule.category);
+      const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
+
+      // 실시간 멤버 수 조회
+      const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
+
+      const reservationsWithApproval = await Promise.all(
+        reservationsWithMemberInfo.map(async (reservation) => {
+          let approvalInfo = null;
+          let approvalStatus = 'approved';
+
+          if (reservation.status === 'pending') {
+            approvalInfo = await ReservationApproval.findOne({
+              reservation: reservation._id
+            }).populate({
+              path: 'approvedBy.user',
+              select: '_id'  // 기본적으로 _id만 가져옴
+            });
+
+            if (approvalInfo) {
+              // 실시간 멤버 수로 승인 정보 업데이트
+              approvalInfo.totalMembersCount = totalMembers;
+              await approvalInfo.save();
+
+              // 승인자들의 RoomMember 정보를 별도로 조회
+              const approvedByWithMemberInfo = await Promise.all(
+                approvalInfo.approvedBy.map(async (approval) => {
+                  const roomMember = await RoomMember.findOne({
+                    roomId: roomId,
+                    userId: approval.user._id
+                  }).select('nickname profileImageUrl');
+
+                  return {
+                    user: {
+                      _id: approval.user._id,
+                      nickname: roomMember?.nickname || '알 수 없음',
+                      profileImageUrl: roomMember?.profileImageUrl || '/images/profile1.png'
+                    },
+                    approvedAt: approval.approvedAt
+                  };
+                })
+              );
+
+              // approvalInfo 객체에 업데이트된 정보 설정
+              approvalInfo.approvedBy = approvedByWithMemberInfo;
+
+              const approvedCount = approvalInfo.approvedBy.length;
+              const requiredApprovals = totalMembers - 1; // 예약자 제외
+
+              if (approvedCount >= requiredApprovals) {
+                approvalStatus = 'fully_approved';
+              } else if (approvedCount > 0) {
+                approvalStatus = 'partial_approved';
+              } else {
+                approvalStatus = 'pending';
+              }
+            } else {
+              approvalStatus = 'pending';
+            }
+          }
+
+          return {
+            ...reservation,
+            approval: approvalInfo,
+            approvalStatus,
+            totalMembers,
+            requiredApprovals: totalMembers - 1,
+            currentApprovals: approvalInfo?.approvedBy.length || 0
+          };
+        })
+      );
+
+      return reservationsWithApproval;
+    },
+
+    /**
+     * 승인 대기 중인 예약 목록 조회 - 실시간 멤버 수 반영 (수정됨)
+     */
+    async getPendingReservations(roomId, userId) {
+      const pendingReservations = await ReservationSchedule.find({
+        room: roomId,
+        status: 'pending'
+      })
       .populate({
         path: 'category',
         select: 'name icon isVisitor',
         match: { isVisitor: true }
       })
       .populate('reservedBy', 'name')
-      .sort({ specificDate: 1, startHour: 1 });
-
-    const visitorReservations = schedules.filter(schedule => schedule.category);
-    const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
-
-    // 실시간 멤버 수 조회
-    const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
-
-    const reservationsWithApproval = await Promise.all(
-      reservationsWithMemberInfo.map(async (reservation) => {
-        let approvalInfo = null;
-        let approvalStatus = 'approved';
-
-        if (reservation.status === 'pending') {
-          approvalInfo = await ReservationApproval.findOne({
-            reservation: reservation._id
-          }).populate('approvedBy.user', 'nickname');
-
-          if (approvalInfo) {
-            // 실시간 멤버 수로 승인 정보 업데이트
-            approvalInfo.totalMembersCount = totalMembers;
-            await approvalInfo.save();
-
-            const approvedCount = approvalInfo.approvedBy.length;
-            const requiredApprovals = totalMembers - 1; // 예약자 제외
-
-            if (approvedCount >= requiredApprovals) {
-              approvalStatus = 'fully_approved';
-            } else if (approvedCount > 0) {
-              approvalStatus = 'partial_approved';
-            } else {
-              approvalStatus = 'pending';
-            }
-          } else {
-            approvalStatus = 'pending';
-          }
-        }
-
-        return {
-          ...reservation,
-          approval: approvalInfo,
-          approvalStatus,
-          totalMembers,
-          requiredApprovals: totalMembers - 1,
-          currentApprovals: approvalInfo?.approvedBy.length || 0
-        };
+      .populate({
+        path: 'room',
+        select: 'name'
       })
-    );
+      .sort({ createdAt: -1 });
 
-    return reservationsWithApproval;
-  },
+      const visitorReservations = pendingReservations.filter(reservation => reservation.category);
+      const reservationsWithMemberInfo = await this.addMemberInfoToReservations(roomId, visitorReservations);
+
+      // 실시간 멤버 수 조회
+      const totalMembers = await RoomMember.countDocuments({ roomId: roomId });
+
+      const reservationsWithApproval = await Promise.all(
+        reservationsWithMemberInfo.map(async (reservation) => {
+          const approval = await ReservationApproval.findOne({
+            reservation: reservation._id
+          }).populate({
+            path: 'approvedBy.user',
+            select: '_id'  // 기본적으로 _id만 가져옴
+          });
+
+          // 승인 정보가 있으면 실시간 멤버 수로 업데이트
+          if (approval) {
+            approval.totalMembersCount = totalMembers;
+            await approval.save();
+
+            // 승인자들의 RoomMember 정보를 별도로 조회
+            const approvedByWithMemberInfo = await Promise.all(
+              approval.approvedBy.map(async (approvalItem) => {
+                const roomMember = await RoomMember.findOne({
+                  roomId: roomId,
+                  userId: approvalItem.user._id
+                }).select('nickname profileImageUrl');
+
+                return {
+                  user: {
+                    _id: approvalItem.user._id,
+                    nickname: roomMember?.nickname || '알 수 없음',
+                    profileImageUrl: roomMember?.profileImageUrl || '/images/profile1.png'
+                  },
+                  approvedAt: approvalItem.approvedAt
+                };
+              })
+            );
+
+            // approval 객체에 업데이트된 정보 설정
+            approval.approvedBy = approvedByWithMemberInfo;
+          }
+
+          const hasUserApproved = approval?.approvedBy.some(
+            app => app.user._id.toString() === userId.toString()
+          ) || false;
+
+          return {
+            ...reservation,
+            approval: approval || null,
+            hasUserApproved,
+            totalMembers,
+            requiredApprovals: totalMembers - 1,
+            currentApprovals: approval?.approvedBy.length || 0
+          };
+        })
+      );
+
+      return reservationsWithApproval;
+    },
 
   /**
    * 승인 대기 중인 예약 목록 조회 - 실시간 멤버 수 반영
@@ -417,107 +523,107 @@ const reservationScheduleService = {
   },
 
   /**
-   * 예약 승인 - 실시간 멤버 수 기반 승인 처리
-   */
-  async approveReservation(reservationId, userId) {
-    const reservation = await ReservationSchedule.findById(reservationId)
-      .populate('category');
+     * 예약 승인 - 실시간 멤버 수 기반 승인 처리 (수정됨)
+     */
+    async approveReservation(reservationId, userId) {
+      const reservation = await ReservationSchedule.findById(reservationId)
+        .populate('category');
 
-    if (!reservation) {
-      throw new ReservationError('예약을 찾을 수 없습니다.', 404);
-    }
-
-    if (!reservation.category.isVisitor) {
-      throw new ReservationError('방문객 예약만 승인할 수 있습니다.', 400);
-    }
-
-    const roomMember = await RoomMember.findOne({
-      roomId: reservation.room,
-      userId: userId
-    });
-
-    if (!roomMember) {
-      throw new ReservationError('방 멤버만 승인할 수 있습니다.', 403);
-    }
-
-    // 예약자 본인은 승인할 수 없음 - userId로 직접 비교
-    if (reservation.reservedBy.toString() === userId.toString()) {
-      throw new ReservationError('본인의 예약은 승인할 수 없습니다.', 400);
-    }
-
-    if (reservation.status === 'approved') {
-      throw new ReservationError('이미 승인된 예약입니다.', 400);
-    }
-
-    let approval = await ReservationApproval.findOne({
-      reservation: reservationId
-    });
-
-    // 실시간 멤버 수 조회
-    const totalMembers = await RoomMember.countDocuments({ roomId: reservation.room });
-
-    if (!approval) {
-      approval = await ReservationApproval.create({
-        reservation: reservationId,
-        totalMembersCount: totalMembers,
-        approvedBy: []
-      });
-    } else {
-      // 기존 승인 정보의 멤버 수 업데이트
-      approval.totalMembersCount = totalMembers;
-    }
-
-    // 이미 승인했는지 확인
-    const hasApproved = approval.approvedBy.some(
-      app => app.user.toString() === userId.toString()
-    );
-
-    if (hasApproved) {
-      throw new ReservationError('이미 승인한 예약입니다.', 400);
-    }
-
-    approval.approvedBy.push({ user: userId });
-
-    const requiredApprovals = totalMembers - 1; // 예약자 제외
-    const currentApprovals = approval.approvedBy.length;
-
-    if (currentApprovals >= requiredApprovals) {
-      // 시간 겹침 재확인
-      const conflictingReservation = await ReservationSchedule.findOne({
-        _id: { $ne: reservationId },
-        room: reservation.room,
-        specificDate: reservation.specificDate,
-        status: 'approved',
-        $or: [
-          {
-            startHour: { $lt: reservation.endHour },
-            endHour: { $gt: reservation.startHour }
-          }
-        ]
-      });
-
-      if (conflictingReservation) {
-        throw new ReservationError('승인 시점에 해당 시간에 이미 다른 예약이 있습니다.', 409);
+      if (!reservation) {
+        throw new ReservationError('예약을 찾을 수 없습니다.', 404);
       }
 
-      reservation.status = 'approved';
-      await reservation.save();
+      if (!reservation.category.isVisitor) {
+        throw new ReservationError('방문객 예약만 승인할 수 있습니다.', 400);
+      }
 
-      approval.isFullyApproved = true;
-    }
+      const roomMember = await RoomMember.findOne({
+        roomId: reservation.room,
+        userId: userId
+      });
 
-    await approval.save();
+      if (!roomMember) {
+        throw new ReservationError('방 멤버만 승인할 수 있습니다.', 403);
+      }
 
-    return {
-      reservation,
-      approval,
-      isFullyApproved: approval.isFullyApproved,
-      currentApprovals,
-      requiredApprovals,
-      remainingApprovals: requiredApprovals - currentApprovals,
-      totalMembers
-    };
-  },
+      // 예약자 본인은 승인할 수 없음 - userId로 직접 비교
+      if (reservation.reservedBy.toString() === userId.toString()) {
+        throw new ReservationError('본인의 예약은 승인할 수 없습니다.', 400);
+      }
+
+      if (reservation.status === 'approved') {
+        throw new ReservationError('이미 승인된 예약입니다.', 400);
+      }
+
+      let approval = await ReservationApproval.findOne({
+        reservation: reservationId
+      });
+
+      // 실시간 멤버 수 조회
+      const totalMembers = await RoomMember.countDocuments({ roomId: reservation.room });
+
+      if (!approval) {
+        approval = await ReservationApproval.create({
+          reservation: reservationId,
+          totalMembersCount: totalMembers,
+          approvedBy: []
+        });
+      } else {
+        // 기존 승인 정보의 멤버 수 업데이트
+        approval.totalMembersCount = totalMembers;
+      }
+
+      // 이미 승인했는지 확인
+      const hasApproved = approval.approvedBy.some(
+        app => app.user.toString() === userId.toString()
+      );
+
+      if (hasApproved) {
+        throw new ReservationError('이미 승인한 예약입니다.', 400);
+      }
+
+      approval.approvedBy.push({ user: userId });
+
+      const requiredApprovals = totalMembers - 1; // 예약자 제외
+      const currentApprovals = approval.approvedBy.length;
+
+      if (currentApprovals >= requiredApprovals) {
+        // 시간 겹침 재확인
+        const conflictingReservation = await ReservationSchedule.findOne({
+          _id: { $ne: reservationId },
+          room: reservation.room,
+          specificDate: reservation.specificDate,
+          status: 'approved',
+          $or: [
+            {
+              startHour: { $lt: reservation.endHour },
+              endHour: { $gt: reservation.startHour }
+            }
+          ]
+        });
+
+        if (conflictingReservation) {
+          throw new ReservationError('승인 시점에 해당 시간에 이미 다른 예약이 있습니다.', 409);
+        }
+
+        reservation.status = 'approved';
+        await reservation.save();
+
+        approval.isFullyApproved = true;
+      }
+
+      await approval.save();
+
+      return {
+        reservation,
+        approval,
+        isFullyApproved: approval.isFullyApproved,
+        currentApprovals,
+        requiredApprovals,
+        remainingApprovals: requiredApprovals - currentApprovals,
+        totalMembers
+      };
+    },
 
   /**
    * 예약 삭제
