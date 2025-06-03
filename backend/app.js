@@ -16,6 +16,9 @@ const choreScheduleRoutes = require('./routes/choreScheduleRoutes');
 const choreService = require('./services/choreService');
 const reservationRoutes = require('./routes/reservation'); // 예약 라우트 추가
 const reservationService = require('./services/reservationService'); // 예약 서비스 추가
+const chatRoutes = require('./routes/chatRoutes'); // 채팅 라우트 추가
+const ChatMessage = require('./models/ChatMessage'); // 채팅 메시지 모델 추가
+const RoomMember = require('./models/RoomMember'); // 룸 멤버 모델 추가
 
 // Express 애플리케이션 인스턴스 생성
 const app = express();
@@ -62,21 +65,51 @@ app.use('/profiles', profileRoutes);
 app.use('/chores', choreRoutes);
 app.use('/chores/schedules', choreScheduleRoutes);
 app.use('/reservations', reservationRoutes); // 예약 라우트 추가
+app.use('/chat', chatRoutes); // 채팅 라우트 추가
 
 // Socket.IO 연결 처리
 const roomSockets = new Map(); // 방별 소켓 관리
 const userSockets = new Map(); // 사용자별 소켓 관리
 
+// 메시지 저장 함수
+async function saveMessageToDatabase(messageData) {
+  try {
+    const chatMessage = new ChatMessage({
+      roomId: messageData.roomId,
+      userId: messageData.userId,
+      message: messageData.text,
+      messageType: 'text',
+      timestamp: new Date(messageData.timestamp)
+    });
+
+    await chatMessage.save();
+    console.log('메시지 데이터베이스 저장 완료:', messageData.id);
+  } catch (error) {
+    console.error('메시지 저장 오류:', error);
+  }
+}
+
 io.on('connection', (socket) => {
   console.log('새로운 소켓 연결:', socket.id);
 
   // 사용자 인증 및 방 참여
-  socket.on('join-room', (data) => {
+  socket.on('join-room', async (data) => {
     try {
       const { roomId, userId, userNickname } = data;
 
       if (!roomId || !userId) {
         socket.emit('error', { message: '방 ID와 사용자 ID가 필요합니다.' });
+        return;
+      }
+
+      // 사용자가 해당 방의 멤버인지 확인
+      const roomMember = await RoomMember.findOne({
+        roomId: roomId,
+        userId: userId
+      });
+
+      if (!roomMember) {
+        socket.emit('error', { message: '해당 방의 멤버가 아닙니다.' });
         return;
       }
 
@@ -86,7 +119,7 @@ io.on('connection', (socket) => {
       // 소켓 정보 저장
       socket.roomId = roomId;
       socket.userId = userId;
-      socket.userNickname = userNickname || '익명';
+      socket.userNickname = userNickname || roomMember.nickname || '익명';
 
       // 방별 소켓 목록 관리
       if (!roomSockets.has(roomId)) {
@@ -97,7 +130,7 @@ io.on('connection', (socket) => {
       // 사용자별 소켓 관리
       userSockets.set(userId, socket.id);
 
-      console.log(`사용자 ${userNickname}(${userId})이 방 ${roomId}에 참여`);
+      console.log(`사용자 ${socket.userNickname}(${userId})이 방 ${roomId}에 참여`);
 
       // 연결 성공 알림
       socket.emit('connected', {
@@ -109,9 +142,9 @@ io.on('connection', (socket) => {
 
       // 방의 다른 사용자들에게 입장 알림
       socket.to(roomId).emit('user-joined', {
-        message: `${userNickname}님이 입장했습니다.`,
+        message: `${socket.userNickname}님이 입장했습니다.`,
         userId,
-        userNickname,
+        userNickname: socket.userNickname,
         timestamp: new Date().toISOString()
       });
 
@@ -122,7 +155,7 @@ io.on('connection', (socket) => {
   });
 
   // 메시지 전송
-  socket.on('message', (data) => {
+  socket.on('message', async (data) => {
     try {
       const { text, roomId, userId } = data;
       const userNickname = socket.userNickname;
@@ -150,12 +183,11 @@ io.on('connection', (socket) => {
 
       console.log(`방 ${roomId}에 메시지 전송:`, messageData);
 
+      // 메시지를 데이터베이스에 저장
+      await saveMessageToDatabase(messageData);
+
       // 방의 모든 사용자에게 메시지 전송 (본인 포함)
       io.to(roomId).emit('message', messageData);
-
-      // TODO: 메시지를 데이터베이스에 저장
-      // 향후 메시지 기록 저장 기능 구현 시 사용
-      // await saveMessageToDatabase(messageData);
 
     } catch (error) {
       console.error('메시지 전송 오류:', error);
