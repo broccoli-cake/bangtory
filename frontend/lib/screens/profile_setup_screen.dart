@@ -10,27 +10,40 @@ class ProfileSetupScreen extends StatefulWidget {
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
-
 }
+
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   bool _nicknameEdited = false; // 닉네임을 직접 입력했는지 여부
-  @override
-  void initState() {
-    super.initState();
-    _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
-  }
 
   //이미지 색상 위한 변수
   Color _profileColor = Colors.pinkAccent; // 기본값
   final List<Color> _colorOptions = [Colors.pinkAccent, Colors.orange, Colors.green, Colors.blue, Colors.purple];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isResetMode) {
+      _loadProfileData(); // [추가] 프로필 수정 모드일 때 기존 데이터 불러오기
+    } else {
+      _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
+    }
+  }
+
+  // [추가] 기존 프로필 불러오기 함수
+  Future<void> _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _nicknameController.text = prefs.getString('nickname') ?? '울퉁불퉁 토마토';
+      _profileColor = Color(prefs.getInt('profileColor') ?? Colors.pinkAccent.value);
+    });
+  }
 
   void _saveProfileSettings(String nickname, Color color) async {    //_saveNickname에서 이미지까지 합친 걸로 바꿈
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('nickname', nickname);
     await prefs.setInt('profileColor', color.value);
   }
-
 
   void _showColorPicker() {    //프로필 색상 선택
     showDialog(
@@ -60,7 +73,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +156,76 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const Spacer(),
+
+            // [추가] 방 나가기, 탈퇴하기 버튼 (isResetMode일 때만)
+            if (widget.isResetMode)
+              Column(
+                children: [
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // TODO: 방 나가기 처리
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('정말 방을 나가시겠어요?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                              TextButton(
+                                onPressed: () {
+                                  // TODO: 실제 방 나가기 로직
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('나가기', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      child: const Text('방 나가기', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // TODO: 탈퇴 처리
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('정말 탈퇴하시겠어요?'),
+                            content: const Text('탈퇴하면 모든 정보가 삭제됩니다.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                              TextButton(
+                                onPressed: () {
+                                  // TODO: 실제 탈퇴 처리
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      child: const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ],
+              ),
+
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -157,11 +239,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   } else {
                     _saveProfileSettings(nickname, _profileColor);   //완료 버튼 내 저장 로직 변경
                     if (widget.isResetMode) {
-                      Navigator.pop(context); // 설정에서 왔다면 뒤로만 감
+                      Navigator.pop(context, true); // 수정 모드일 경우, true 반환해서 SettingsScreen에 알림
                     } else {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const GoRoomScreen()),
+                        MaterialPageRoute(builder: (_) => const GoRoomScreen()),
                       );
                     }
                   }
