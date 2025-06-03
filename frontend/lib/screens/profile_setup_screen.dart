@@ -21,10 +21,46 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
   }
 
-  void _saveNickname(String nickname) async {
+  //이미지 색상 위한 변수
+  Color _profileColor = Colors.pinkAccent; // 기본값
+  final List<Color> _colorOptions = [Colors.pinkAccent, Colors.orange, Colors.green, Colors.blue, Colors.purple];
+
+  void _saveProfileSettings(String nickname, Color color) async {    //_saveNickname에서 이미지까지 합친 걸로 바꿈
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('nickname', nickname);
+    await prefs.setInt('profileColor', color.value);
   }
+
+
+  void _showColorPicker() {    //프로필 색상 선택
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('프로필 색상을 선택하세요'),
+        content: Wrap(
+          spacing: 10,
+          children: _colorOptions.map((color) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _profileColor = color;
+                });
+                Navigator.pop(context);
+              },
+              child: CircleAvatar(
+                backgroundColor: color,
+                radius: 20,
+                child: _profileColor == color
+                    ? const Icon(Icons.check, color: Colors.white)
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -61,14 +97,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const SizedBox(height: 50),
-            Center(
+            Center(     //프로필 이미지 부분 수정
               child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 80,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor: _profileColor,
                     child: const Icon(
-                      Icons.person,
+                      Icons.face,
                       size: 80,
                       color: Colors.white,
                     ),
@@ -76,9 +112,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.grey[400],
-                      child: const Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
+                    child: GestureDetector(
+                      onTap: _showColorPicker,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.grey[400],
+                        child: const Icon(Icons.color_lens_outlined, size: 20, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -116,7 +155,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       const SnackBar(content: Text('닉네임을 입력해주세요!')),
                     );
                   } else {
-                    _saveNickname(nickname);
+                    _saveProfileSettings(nickname, _profileColor);   //완료 버튼 내 저장 로직 변경
                     if (widget.isResetMode) {
                       Navigator.pop(context); // 설정에서 왔다면 뒤로만 감
                     } else {

@@ -12,6 +12,8 @@ import 'package:frontend/settings/setting_home.dart';
 import 'package:frontend/settings/room/calendar.dart';
 import 'package:frontend/screens/full_schedule_screen.dart';
 import 'package:frontend/screens/chat_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final String roomName;
@@ -46,12 +48,24 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> trashDuties = [];
 
 
-  String _generateInviteCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final rand = Random();
-    return List
-        .generate(6, (index) => chars[rand.nextInt(chars.length)])
-        .join();
+  // SharedPreferences로부터 불러온 프로필 데이터
+  String _nickname = '이름 없음';
+  Color _profileColor = Colors.pinkAccent;
+
+  @override
+  void initState() {
+    super.initState();
+    userName = widget.userName;
+    _loadProfileData(); // 프로필 데이터 불러오기
+  }
+
+  Future<void> _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _nickname = prefs.getString('nickname') ?? '이름 없음';
+      final colorValue = prefs.getInt('profileColor') ?? Colors.pinkAccent.value;
+      _profileColor = Color(colorValue);
+    });
   }
 
   void _goToSettings() async {
@@ -61,19 +75,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (shouldRefresh == true) {
-      _buildProfileSection(); // SharedPreferences에서 새 닉네임 불러오기
+      _loadProfileData(); // 닉네임과 색상 다시 불러오기
     }
   }
+
+  String _generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final rand = Random();
+    return List
+        .generate(6, (index) => chars[rand.nextInt(chars.length)])
+        .join();
+  }
+
 
   Widget _buildProfileSection() =>
       ListTile(
         leading: CircleAvatar(
           radius: 24,
-          backgroundColor: Colors.pinkAccent,
+          backgroundColor: _profileColor,
           child: const Icon(Icons.face, color: Colors.white),
         ),
-        title: Text(widget.userName,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(_nickname, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: const Text('방장'),
         trailing: IconButton(
           icon: const Icon(Icons.share),
