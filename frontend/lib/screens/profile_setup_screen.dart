@@ -135,7 +135,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     radius: 80,
                     backgroundColor: Colors.grey[300],
                     child: const Icon(
-                      Icons.person,
+                      Icons.face,
                       size: 80,
                       color: Colors.white,
                     ),

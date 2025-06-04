@@ -228,7 +228,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   radius: 24,
                   backgroundColor: _getProfileColor(profileImageUrl),
                   child: const Icon(
-                    Icons.person,
+                    Icons.face,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -327,7 +327,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 value: 'kick',
                 child: Row(
                   children: [
-                    Icon(Icons.person_remove, color: Colors.red, size: 16),
+                    Icon(Icons.face_retouching_off, color: Colors.red, size: 16),
                     SizedBox(width: 8),
                     Text('내보내기'),
                   ],

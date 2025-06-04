@@ -236,7 +236,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             Row(
               children: [
                 if (notification.fromUser != null) ...[
-                  Icon(Icons.person, size: 12, color: Colors.grey[500]),
+                  Icon(Icons.face, size: 12, color: Colors.grey[500]),
                   const SizedBox(width: 4),
                   Text(
                     notification.fromUser!,

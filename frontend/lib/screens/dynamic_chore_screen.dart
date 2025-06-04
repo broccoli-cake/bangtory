@@ -250,7 +250,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pinkAccent,
+                      backgroundColor: const Color(0xFFFA2E55),
                     ),
                     onPressed: appState.isLoading ? null : _addDuty,
                     child: appState.isLoading

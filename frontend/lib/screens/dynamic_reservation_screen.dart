@@ -768,7 +768,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pinkAccent,
+                          backgroundColor: const Color(0xFFFA2E55),
                           foregroundColor: Colors.white,
                         ),
                         onPressed: appState.isLoading ? null : _addReservation,

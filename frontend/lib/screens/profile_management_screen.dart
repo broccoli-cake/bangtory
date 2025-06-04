@@ -98,7 +98,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               radius: 55,
               backgroundColor: _getProfileColor(_selectedProfileImage),
               child: Icon(
-                Icons.person,
+                Icons.face,
                 size: 60,
                 color: Colors.white,
               ),
@@ -139,7 +139,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   radius: 40,
                   backgroundColor: _getProfileColor(imageUrl),
                   child: const Icon(
-                    Icons.person,
+                    Icons.face,
                     size: 60,
                     color: Colors.white,
                   ),
