@@ -998,7 +998,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   radius: 24,
                                   backgroundColor: _getProfileColor(profileImageUrl),
                                   child: Icon(
-                                    Icons.person,
+                                    Icons.face,
                                     color: Colors.white,
                                     size: 24,
                                   ),
