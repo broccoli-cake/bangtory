@@ -133,7 +133,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 Center(
                   child: CircleAvatar(
                     radius: 80,
-                    backgroundColor: const Color(0xFFFA2E55),
+                    backgroundColor: Colors.grey[300],
                     child: const Icon(
                       Icons.face,
                       size: 80,

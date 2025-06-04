@@ -85,9 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style:
-                TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
+            Text(label, style: TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
             trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
 import 'home_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class RoomMakingScreen extends StatefulWidget {
   const RoomMakingScreen({super.key});
@@ -14,20 +13,6 @@ class RoomMakingScreen extends StatefulWidget {
 class _RoomMakingScreenState extends State<RoomMakingScreen> {
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  String userName = ''; // SharedPreferences에서 불러올 닉네임 저장용
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNickname(); // 닉네임 불러오기
-  }
-
-  Future<void> _loadNickname() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('nickname') ?? '사용자';
-    });
-  }
 
   @override
   void dispose() {

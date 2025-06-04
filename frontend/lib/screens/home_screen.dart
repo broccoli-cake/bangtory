@@ -16,11 +16,10 @@ class HomeScreen extends StatefulWidget {
   final String roomName;
   final String userName;
 
-
   const HomeScreen({
-  super.key,
-  required this.roomName,
-  required this.userName,
+    super.key,
+    required this.roomName,
+    required this.userName,
   });
 
   @override
@@ -28,10 +27,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late String userName;
   bool isChoreSelected = true;
-
-
   List<String> participants = [];
 
   @override
@@ -833,7 +829,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 집안일 / 예약 토글 버튼
                 _buildToggleButton('집안일', isChoreSelected, () {
                   setState(() => isChoreSelected = true);
                 }),
@@ -843,7 +838,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 }),
               ],
             ),
-
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 40,
+              runSpacing: 24,
+              alignment: WrapAlignment.center,
+              children: [
+                // Consumer를 사용하여 상태 변화 감지
+                Consumer<AppState>(
+                  builder: (context, appState, child) {
+                    return Wrap(
+                      spacing: 40,
+                      runSpacing: 24,
+                      children: [
+                        ..._buildCategoryItems(isChoreSelected),
+                        _buildAddTaskButton(isChoreSelected),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             // 오늘 할 일 섹션 - 수정된 부분
             Container(
@@ -916,7 +931,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context), //
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
