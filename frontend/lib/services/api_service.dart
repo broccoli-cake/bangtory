@@ -318,6 +318,21 @@ class ApiService {
     }
   }
 
+  Future<void> deleteRoom(String roomId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/rooms/$roomId'),
+        headers: _headers,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('방 삭제 실패: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('방 삭제 중 오류 발생: $e');
+    }
+  }
+
   // ===== 채팅 메시지 관련 =====
 
   Future<List<Map<String, dynamic>>> getChatMessages({

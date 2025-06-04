@@ -580,36 +580,6 @@ const roomService = {
       console.error('방 나가기 중 에러:', error);
       throw error;
     }
-  };
-
-  /**
-   * 방 멤버 프로필 수정
-   */
-  async updateMemberProfile(userId, profileData) {
-    const roomMember = await RoomMember.findOne({ userId });
-    if (!roomMember) {
-      throw new Error('방 멤버를 찾을 수 없습니다.');
-    }
-
-    if (profileData.nickname) {
-      // 방 내 닉네임 중복 체크
-      const existingMember = await RoomMember.findOne({
-        roomId: roomMember.roomId,
-        nickname: profileData.nickname,
-        _id: { $ne: roomMember._id }
-      });
-      if (existingMember) {
-        throw new Error('이미 사용 중인 닉네임입니다.');
-      }
-      roomMember.nickname = profileData.nickname;
-    }
-
-    if (profileData.profileImageUrl) {
-      roomMember.profileImageUrl = profileData.profileImageUrl;
-    }
-
-    await roomMember.save();
-    return roomMember;
   }
 };
 

@@ -317,6 +317,41 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteRoom() async {
+    if (_currentRoom == null) {
+      throw Exception('삭제할 방이 없습니다.');
+    }
+
+    if (!_currentRoom!.isOwner) {
+      throw Exception('방장만 방을 삭제할 수 있습니다.');
+    }
+
+    setLoading(true);
+    try {
+      await _apiService.deleteRoom(_currentRoom!.roomId);
+
+      // 방이 삭제된 후 모든 상태 초기화
+      _currentRoom = null;
+      _currentUserProfile = null;
+      _roomMembers = [];
+      _choreCategories = [];
+      _reservationCategories = [];
+      _choreSchedules = [];
+      _reservationSchedules = [];
+      _visitorReservations = [];
+      _pendingReservations = [];
+      _categoryReservations = {};
+      _unreadNotificationCount = 0;
+
+      notifyListeners();
+    } catch (e) {
+      print('Delete room error: $e');
+      rethrow;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // ===== 카테고리 관련 =====
 
   Future<void> loadChoreCategories() async {

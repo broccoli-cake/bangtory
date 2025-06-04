@@ -399,8 +399,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           final currentUserId = appState.currentUser?.id ?? '';
 
           // 멤버 정렬: 본인이 맨 앞, 그 다음은 방 입장 순서대로
-          final sortedMembers = List<Map<String, dynamic>>.from(
-              appState.roomMembers);
+          final sortedMembers = List<Map<String, dynamic>>.from(appState.roomMembers);
 
           sortedMembers.sort((a, b) {
             final aUserId = a['userId']?.toString();
@@ -506,16 +505,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           const Spacer(),
                           if (!isOwner)
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
                                 '방장만 수정 가능',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey),
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                             ),
                         ],
@@ -549,8 +546,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFFA2E55)),
+                            borderSide: const BorderSide(color: Color(0xFFFA2E55)),
                           ),
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -587,8 +583,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                                color: Color(0xFFFA2E55)),
+                            borderSide: const BorderSide(color: Color(0xFFFA2E55)),
                           ),
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -657,8 +652,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFA2E55),
                               borderRadius: BorderRadius.circular(12),
@@ -734,8 +728,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           onPressed: () async {
                             try {
-                              final inviteCode = await appState
-                                  .generateInviteCode();
+                              final inviteCode = await appState.generateInviteCode();
                               _showInviteCodeDialog(inviteCode);
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -790,87 +783,32 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           color: Colors.red,
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // 방장인 경우 경고 메시지
-                      if (isOwner)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.warning, color: Colors.red.shade600,
-                                  size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '방장 제한사항',
-                                      style: TextStyle(
-                                        color: Colors.red.shade800,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '방장은 다른 멤버에게 방장을 위임한 후에만 방을 나갈 수 있습니다.\n방장을 위임하지 않으면 방을 나갈 수 없습니다.',
-                                      style: TextStyle(
-                                        color: Colors.red.shade700,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Text(
-                          '방을 나가면 다시 초대 코드로만 들어올 수 있습니다.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
 
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isOwner ? Colors.grey[400] : Colors
-                                .red,
+                            backgroundColor: isOwner ? Colors.grey[400] : Colors.red,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: isOwner ? null : () =>
-                              _showLeaveRoomDialog(),
+                          onPressed: isOwner ? null : () => _showLeaveRoomDialog(),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 isOwner ? Icons.block : Icons.exit_to_app,
-                                color: isOwner ? Colors.grey[600] : Colors
-                                    .white,
+                                color: isOwner ? Colors.grey[600] : Colors.white,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 isOwner ? '방장 위임 후 나가기 가능' : '방 나가기',
                                 style: TextStyle(
-                                  color: isOwner ? Colors.grey[600] : Colors
-                                      .white,
+                                  color: isOwner ? Colors.grey[600] : Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -882,6 +820,74 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // 방 삭제하기 섹션 (방장만 표시)
+                if (isOwner)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '방 삭제하기',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => _showDeleteRoomDialog(),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.delete_forever,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '방 삭제하기',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 const SizedBox(height: 32),
               ],
@@ -966,7 +972,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               style: TextStyle(color: Colors.red),
             ),
             content: const Text(
-              '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
+              '정말로 방을 나가시겠습니까?\n\n나간 후에는 기존 데이터가 삭제됩니다.',
             ),
             actions: [
               TextButton(
@@ -989,6 +995,163 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             ],
           ),
     );
+  }
+
+  void _showDeleteRoomDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red.shade600, size: 24),
+            const SizedBox(width: 8),
+            const Text(
+              '방 삭제 확인',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '정말로 이 방을 삭제하시겠습니까?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '삭제 시 일어나는 일:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• 모든 멤버가 자동으로 방에서 나가게 됩니다\n'
+                        '• 모든 집안일 일정이 삭제됩니다\n'
+                        '• 모든 예약 데이터가 삭제됩니다\n'
+                        '• 채팅 기록이 삭제됩니다\n'
+                        '• 이 작업은 되돌릴 수 없습니다',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '취소',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteRoom();
+            },
+            child: const Text(
+              '삭제',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteRoom() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    try {
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('방을 삭제하는 중...'),
+            ],
+          ),
+        ),
+      );
+
+      await appState.deleteRoom();
+
+      // 로딩 다이얼로그 닫기
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('방이 삭제되었습니다.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // 방이 삭제된 후 방 생성/참여 화면으로 이동
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const GoRoomScreen()),
+            (route) => false,
+      );
+    } catch (e) {
+      // 로딩 다이얼로그 닫기
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('방 삭제 실패: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _leaveRoom() async {
