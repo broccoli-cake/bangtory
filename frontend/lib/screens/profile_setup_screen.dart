@@ -1,5 +1,3 @@
-//프로필 이미지 설정(갤러리 이동), 랜덤 닉네임 불러오기 기능 추가 필요!!!
-
 import 'package:flutter/material.dart';
 import 'go_room_screen.dart';
 import 'package:http/http.dart' as http;
@@ -7,29 +5,103 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  final bool isResetMode;
+  const ProfileSetupScreen({super.key, this.isResetMode = false});
+
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
+
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   bool _nicknameEdited = false; // 닉네임을 직접 입력했는지 여부
+
+  //이미지 색상 위한 변수
+  Color _profileColor = Colors.pinkAccent; // 기본값
+  final List<Color> _colorOptions = [Colors.pinkAccent, Colors.orange, Colors.green, Colors.blue, Colors.purple];
+
   @override
   void initState() {
     super.initState();
-    _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
+    if (widget.isResetMode) {
+      _loadProfileData(); // [추가] 프로필 수정 모드일 때 기존 데이터 불러오기
+    } else {
+      _nicknameController.text = '울퉁불퉁 토마토'; // 기본 랜덤 닉네임
+    }
   }
+
+  // [추가] 기존 프로필 불러오기 함수
+  Future<void> _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _nicknameController.text = prefs.getString('nickname') ?? '울퉁불퉁 토마토';
+      _profileColor = Color(prefs.getInt('profileColor') ?? Colors.pinkAccent.value);
+    });
+  }
+
+  void _saveProfileSettings(String nickname, Color color) async {    //_saveNickname에서 이미지까지 합친 걸로 바꿈
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nickname', nickname);
+    await prefs.setInt('profileColor', color.value);
+  }
+
+  void _showColorPicker() {    //프로필 색상 선택
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('프로필 색상을 선택하세요'),
+        content: Wrap(
+          spacing: 10,
+          children: _colorOptions.map((color) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _profileColor = color;
+                });
+                Navigator.pop(context);
+              },
+              child: CircleAvatar(
+                backgroundColor: color,
+                radius: 20,
+                child: _profileColor == color
+                    ? const Icon(Icons.check, color: Colors.white)
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: widget.isResetMode
+          ? AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          '프로필 수정',
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
+      )
+          : null,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 100.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '안녕하세요!\n프로필을 만들어 주세요.',
+              widget.isResetMode
+                  ? '닉네임을 수정하세요.'
+                  : '안녕하세요!\n프로필을 만들어 주세요.',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -37,15 +109,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const SizedBox(height: 50),
-            // 프로필 이미지
-            Center(
+            Center(     //프로필 이미지 부분 수정
               child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 80,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor: _profileColor,
                     child: const Icon(
-                      Icons.person,
+                      Icons.face,
                       size: 80,
                       color: Colors.white,
                     ),
@@ -53,21 +124,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.grey[400],
-                      child: const Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
+                    child: GestureDetector(
+                      onTap: _showColorPicker,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.grey[400],
+                        child: const Icon(Icons.color_lens_outlined, size: 20, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 40),
-            // 닉네임 입력창
             TextField(
               controller: _nicknameController,
               onTap: () {
                 if (!_nicknameEdited) {
-                  _nicknameController.clear(); // 처음 클릭 시 랜덤닉네임 제거
+                  _nicknameController.clear();
                   _nicknameEdited = true;
                 }
               },
@@ -83,7 +156,76 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
             ),
             const Spacer(),
-            // 완료 버튼
+
+            // [추가] 방 나가기, 탈퇴하기 버튼 (isResetMode일 때만)
+            if (widget.isResetMode)
+              Column(
+                children: [
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // TODO: 방 나가기 처리
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('정말 방을 나가시겠어요?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                              TextButton(
+                                onPressed: () {
+                                  // TODO: 실제 방 나가기 로직
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('나가기', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      child: const Text('방 나가기', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // TODO: 탈퇴 처리
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('정말 탈퇴하시겠어요?'),
+                            content: const Text('탈퇴하면 모든 정보가 삭제됩니다.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                              TextButton(
+                                onPressed: () {
+                                  // TODO: 실제 탈퇴 처리
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      child: const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ],
+              ),
+
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -95,10 +237,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       const SnackBar(content: Text('닉네임을 입력해주세요!')),
                     );
                   } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const GoRoomScreen()),
-                    );
+                    _saveProfileSettings(nickname, _profileColor);   //완료 버튼 내 저장 로직 변경
+                    if (widget.isResetMode) {
+                      Navigator.pop(context, true); // 수정 모드일 경우, true 반환해서 SettingsScreen에 알림
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const GoRoomScreen()),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -142,4 +289,3 @@ Future<void> createRoom(String roomName, String address) async {
     print('방 생성 실패: ${response.body}');
   }
 }
-

@@ -69,8 +69,8 @@ class _RoomEnterScreenState extends State<RoomEnterScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => HomeScreen(
-                            roomName: '우리 방',   // 여기에 실제 방 이름 넣어주세요
-                            userName: 'user1',    // user1 아이콘 표시용 이름
+                            roomName: '우리 방',   // 여기에 실제 방 이름 반영하기 (초대코드로 확인)
+                            userName: 'user1',    // user1 아이콘 표시용 이름 (방장) 추후 실제 방장으로 변동 필요
                           ),
                         ),
                       );

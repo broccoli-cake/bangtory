@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
-import 'package:frontend/screens/onboarding_screen.dart'; // 위에 올려주신 OnboardingScreen
+import 'package:frontend/screens/onboarding_screen.dart';
+import 'package:frontend/screens/profile_setup_screen.dart'; // 추가
+import 'package:frontend/settings/room/room_management_screen.dart';  //방 관리 연결
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,9 +31,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: const Color(0xFFFA2E55),
             ),
             onPressed: () {
-              Navigator.pop(context); // 다이얼로그 닫기
+              Navigator.pop(context);
               // TODO: 로그아웃 처리 로직 추가
-
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -63,12 +65,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
+            Text(label,
+                style:
+                TextStyle(fontSize: 16, color: textColor ?? Colors.black)),
             trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _navigateToProfileSetup() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProfileSetupScreen(isResetMode: true),
+      ),
+    );
+
+    if (changed == true) {
+      // 프로필 변경되었으면 이 화면을 호출한 쪽에 변경 알림 전달
+      Navigator.pop(context, true);
+    }
+    // 변경 안됐으면 그냥 이 화면에 머무름
   }
 
   @override
@@ -93,9 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _buildSettingsItem(
             label: '프로필 관리',
-            onTap: () {
-              // TODO: 프로필 화면으로 이동
-            },
+            onTap: _navigateToProfileSetup,
           ),
           _buildSettingsItem(
             label: '푸시알림',
@@ -114,7 +131,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '방 관리',
             onTap: () {
-              // TODO: 방관리 화면으로 이동
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                  builder: (_) => const RoomManagementScreen(roomName: '실제 방 이름으로 수정 필요'), // 여기에 실제 방 이름!
+                  ),
+              );
             },
           ),
           _buildSettingsItem(

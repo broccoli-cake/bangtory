@@ -1,6 +1,7 @@
-//설정-방관리 화면 연결 구현 예정 *연결 아직 안됨
+//방 이름 수정 가능하게 변경 필요
 
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/onboarding_screen.dart'; // 온보딩 화면 import
 
 class RoomManagementScreen extends StatefulWidget {
   final String roomName;
@@ -63,11 +64,11 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // 이전 화면으로 나가기
-              // 실제 삭제 처리 로직은 여기에 구현
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("방이 삭제되었습니다.")),
+              Navigator.pop(context);  //다이얼로그 닫기
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                    (route) => false, // 모든 이전 화면 제거
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -77,6 +78,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ),
     );
   }
+
 
   Widget _buildMenuItem(String title, {VoidCallback? onTap}) {
     return ListTile(
