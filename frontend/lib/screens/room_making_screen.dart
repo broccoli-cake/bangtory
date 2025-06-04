@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:shared_preferences/shared_preferences.dart';
-=======
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
->>>>>>> ffbaa156a92efea73fa72adf1c42c26c2de1f2e7
 import 'home_screen.dart';
 
 class RoomMakingScreen extends StatefulWidget {
@@ -17,20 +13,6 @@ class RoomMakingScreen extends StatefulWidget {
 class _RoomMakingScreenState extends State<RoomMakingScreen> {
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  String userName = ''; // SharedPreferences에서 불러올 닉네임 저장용
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNickname(); // 닉네임 불러오기
-  }
-
-  Future<void> _loadNickname() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('nickname') ?? '사용자';
-    });
-  }
 
   @override
   void dispose() {
@@ -49,17 +31,6 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
       return;
     }
 
-<<<<<<< HEAD
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomeScreen(
-          roomName: roomName,
-          userName: userName,
-        ),
-      ),
-    );
-=======
     final appState = Provider.of<AppState>(context, listen: false);
 
     try {
@@ -89,7 +60,6 @@ class _RoomMakingScreenState extends State<RoomMakingScreen> {
         SnackBar(content: Text('방 생성 실패: $e')),
       );
     }
->>>>>>> ffbaa156a92efea73fa72adf1c42c26c2de1f2e7
   }
 
   @override
