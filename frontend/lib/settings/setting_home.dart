@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
 import 'package:frontend/screens/onboarding_screen.dart';
 import 'package:frontend/screens/profile_setup_screen.dart'; // 추가
+import 'package:frontend/settings/room/room_management_screen.dart';  //방 관리 연결
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -129,7 +131,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingsItem(
             label: '방 관리',
             onTap: () {
-              // TODO: 방관리 화면으로 이동
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                  builder: (_) => const RoomManagementScreen(roomName: '실제 방 이름으로 수정 필요'), // 여기에 실제 방 이름!
+                  ),
+              );
             },
           ),
           _buildSettingsItem(
