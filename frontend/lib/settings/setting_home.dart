@@ -95,21 +95,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _navigateToProfileSetup() async {
-    final changed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ProfileSetupScreen(isResetMode: true),
-      ),
-    );
-
-    if (changed == true) {
-      // 프로필 변경되었으면 이 화면을 호출한 쪽에 변경 알림 전달
-      Navigator.pop(context, true);
-    }
-    // 변경 안됐으면 그냥 이 화면에 머무름
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
