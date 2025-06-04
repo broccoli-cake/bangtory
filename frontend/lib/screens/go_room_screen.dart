@@ -26,13 +26,13 @@ class GoRoomScreen extends StatelessWidget {
                   height: 120,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFA2E55),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 10,
-                        offset: Offset(0, 4),
+                        offset: Offset(0, 8),
                       ),
                     ],
                   ),
@@ -40,12 +40,12 @@ class GoRoomScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add, color: Colors.white),
-                        SizedBox(width: 8),
+                        Icon(Icons.add, color: Color(0xFFFA2E55)),
+                        SizedBox(width: 10),
                         Text(
                           '방 만들기',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black54,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -55,6 +55,9 @@ class GoRoomScreen extends StatelessWidget {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 20),
+
               // 방 들어가기 버튼
               GestureDetector(
                 onTap: () {
@@ -67,13 +70,13 @@ class GoRoomScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFA2E55),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 10,
-                        offset: Offset(0, 4),
+                        offset: Offset(0, 8),
                       ),
                     ],
                   ),
@@ -81,12 +84,12 @@ class GoRoomScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.meeting_room, color: Colors.white),
-                        SizedBox(height: 8),
+                        Icon(Icons.meeting_room, color: Color(0xFFFA2E55)),
+                        SizedBox(height: 10),
                         Text(
                           '방 들어가기',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black54,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),

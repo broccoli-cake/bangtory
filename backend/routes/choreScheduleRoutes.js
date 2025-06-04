@@ -20,6 +20,12 @@ router.patch('/:scheduleId/complete',
   choreScheduleController.completeSchedule
 );
 
+// [PATCH] /chores/schedules/:scheduleId/uncomplete - 일정 완료 해제 (새로 추가)
+router.patch('/:scheduleId/uncomplete',
+  simpleAuth,
+  choreScheduleController.uncompleteSchedule
+);
+
 // [DELETE] /chores/schedules/:scheduleId - 일정 삭제
 router.delete('/:scheduleId',
   simpleAuth,

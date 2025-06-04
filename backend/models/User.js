@@ -2,26 +2,18 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  nickname: {
+  name: {
     type: String,
     required: true
-  },
-  profileImageUrl: {
-    type: String,
-    default: '/images/default-profile.png'  // 기본 프로필 이미지 경로
   },
   provider: {
     type: String,
     required: true,
-    enum: ['kakao', 'google', 'naver', 'manual'] // manual 추가
+    enum: ['kakao', 'google', 'naver', 'manual']
   },
   providerId: {
     type: String,
     required: true
-  },
-  isProfileSet: {
-    type: Boolean,
-    default: false
   }
 }, {
   timestamps: true
