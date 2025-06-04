@@ -514,15 +514,50 @@ const roomService = {
     }
   },
 
-  // 방 나가기 시 알림 (기존 leaveRoom 메서드에 추가)
+  /**
+   * 방 나가기 (수정됨)
+   * @param {string} userId - 나가려는 사용자 ID
+   * @returns {Promise<void>}
+   */
   async leaveRoom(userId) {
-    // ... 기존 방 나가기 로직 ...
-
     try {
-      if (roomMember && room) {
-        // 다른 멤버들에게 나간 멤버 알림
+      // 사용자가 참여 중인 방 찾기
+      const roomMember = await RoomMember.findOne({ userId });
+      if (!roomMember) {
+        throw new Error('참여 중인 방이 없습니다.');
+      }
+
+      const roomId = roomMember.roomId;
+
+      // 방 정보 가져오기
+      const room = await Room.findById(roomId);
+      if (!room) {
+        throw new Error('방을 찾을 수 없습니다.');
+      }
+
+      // 전체 멤버 수 확인
+      const totalMembers = await RoomMember.countDocuments({ roomId });
+
+      // 방장인지 확인
+      const isOwner = room.ownerId.toString() === userId;
+
+      if (isOwner) {
+        if (totalMembers > 1) {
+          // 방장이고 다른 멤버가 있는 경우 - 방장 위임 필요
+          throw new Error('다른 멤버가 있을 때는 방장을 위임한 후 나갈 수 있습니다.');
+        } else {
+          // 방장이고 혼자 있는 경우 - 방 삭제
+          console.log('방장이 혼자 있어서 방 삭제');
+          await RoomMember.deleteMany({ roomId });
+          await Room.findByIdAndDelete(roomId);
+          return;
+        }
+      }
+
+      // 방 나가기 알림 전송 (멤버 삭제 전에 수행)
+      try {
         await notificationService.notifyRoomMembers({
-          roomId: room._id,
+          roomId: roomId,
           fromUserId: userId,
           type: 'member_left',
           title: '멤버 나감',
@@ -532,11 +567,20 @@ const roomService = {
             leftUserNickname: roomMember.nickname
           }
         });
+      } catch (notificationError) {
+        console.error('방 나가기 알림 전송 실패:', notificationError);
+        // 알림 전송 실패해도 방 나가기는 계속 진행
       }
-    } catch (notificationError) {
-      console.error('방 나가기 알림 전송 실패:', notificationError);
+
+      // 일반 멤버인 경우 - 바로 나가기
+      await RoomMember.findOneAndDelete({ userId });
+      console.log('일반 멤버 방 나가기 완료');
+
+    } catch (error) {
+      console.error('방 나가기 중 에러:', error);
+      throw error;
     }
-  },
+  };
 
   /**
    * 방 멤버 프로필 수정
