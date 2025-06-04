@@ -17,7 +17,7 @@ class FullScheduleScreen extends StatefulWidget {
 class _FullScheduleScreenState extends State<FullScheduleScreen> {
   final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
 
-  // 카테고리별 고정 색상 매핑 (토마토 숙성 단계)
+  // 카테고리별 고정 색상 매핑
   final Map<String, Color> _categoryColorMap = {};
   final List<Color> _availableColors = [
     const Color(0xFF2E7D32),
