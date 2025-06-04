@@ -53,9 +53,6 @@ app.use(cors({
   credentials: true
 }));
 
-// views 디렉토리를 정적 파일로 제공
-app.use('/views', express.static(path.join(__dirname, 'views')));
-
 // 라우트 설정
 app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'test.html'));
