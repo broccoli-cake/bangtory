@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_state.dart';
-import './onboarding_screen.dart';
+import './go_room_screen.dart';
 
 class RoomManagementScreen extends StatefulWidget {
   const RoomManagementScreen({super.key});
@@ -99,26 +99,28 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('방장 위임'),
-        content: Text('$memberNickname님에게 방장을 위임하시겠습니까?\n\n⚠️ 위임 후에는 되돌릴 수 없습니다.\n위임 후 일반 멤버가 됩니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('방장 위임'),
+            content: Text(
+                '$memberNickname님에게 방장을 위임하시겠습니까?\n\n⚠️ 위임 후에는 되돌릴 수 없습니다.\n위임 후 일반 멤버가 됩니다.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFA2E55),
+                ),
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _transferOwnership(member['userId']);
+                },
+                child: const Text('위임', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFA2E55),
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _transferOwnership(member['userId']);
-            },
-            child: const Text('위임', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -155,26 +157,28 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('멤버 내보내기'),
-        content: Text('$memberNickname님을 방에서 내보내시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+      builder: (context) =>
+          AlertDialog(
+            title: const Text('멤버 내보내기'),
+            content: Text('$memberNickname님을 방에서 내보내시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _kickMember(member['userId']);
+                },
+                child: const Text(
+                    '내보내기', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _kickMember(member['userId']);
-            },
-            child: const Text('내보내기', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -203,7 +207,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     }
   }
 
-  Widget _buildMemberItem(Map<String, dynamic> member, bool isOwner, String currentUserId) {
+  Widget _buildMemberItem(Map<String, dynamic> member, bool isOwner,
+      String currentUserId) {
     final nickname = member['nickname'] ?? '알 수 없음';
     final isCurrentUser = member['userId'] == currentUserId;
     final isMemberOwner = member['isOwner'] == true;
@@ -215,7 +220,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: isMemberOwner ? Border.all(color: Colors.amber, width: 2) : null,
+          border: isMemberOwner
+              ? Border.all(color: Colors.amber, width: 2)
+              : null,
         ),
         child: ListTile(
           leading: GestureDetector(
@@ -263,40 +270,51 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   nickname,
                   overflow: TextOverflow.ellipsis, // 넘치면 "..." 처리
                   style: TextStyle(
-                    fontWeight: isMemberOwner ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isMemberOwner ? FontWeight.bold : FontWeight
+                        .normal,
                   ),
                 ),
               ),
               if (isMemberOwner)
                 Container(
                   margin: const EdgeInsets.only(left: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.amber,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     '방장',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               if (isCurrentUser)
                 Container(
                   margin: const EdgeInsets.only(left: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFA2E55),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     '나',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
             ],
           ),
           subtitle: Text(
-            '참여일: ${DateTime.tryParse(member['joinedAt'] ?? '')?.toLocal().toString().split(' ')[0] ?? '알 수 없음'}',
+            '참여일: ${DateTime
+                .tryParse(member['joinedAt'] ?? '')
+                ?.toLocal()
+                .toString()
+                .split(' ')[0] ?? '알 수 없음'}',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
@@ -312,7 +330,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 _showKickMemberDialog(member);
               }
             },
-            itemBuilder: (context) => [
+            itemBuilder: (context) =>
+            [
               const PopupMenuItem(
                 value: 'transfer',
                 child: Row(
@@ -327,7 +346,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 value: 'kick',
                 child: Row(
                   children: [
-                    Icon(Icons.face_retouching_off, color: Colors.red, size: 16),
+                    Icon(
+                        Icons.face_retouching_off, color: Colors.red, size: 16),
                     SizedBox(width: 8),
                     Text('내보내기'),
                   ],
@@ -377,6 +397,49 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
           final isOwner = appState.currentRoom!.isOwner;
           final currentUserId = appState.currentUser?.id ?? '';
+
+          // 멤버 정렬: 본인이 맨 앞, 그 다음은 방 입장 순서대로
+          final sortedMembers = List<Map<String, dynamic>>.from(
+              appState.roomMembers);
+
+          sortedMembers.sort((a, b) {
+            final aUserId = a['userId']?.toString();
+            final bUserId = b['userId']?.toString();
+
+            // 본인이면 맨 앞으로
+            if (aUserId == currentUserId && bUserId != currentUserId) return -1;
+            if (bUserId == currentUserId && aUserId != currentUserId) return 1;
+
+            // 둘 다 본인이 아니면 입장한 순서대로
+            DateTime? aTime;
+            DateTime? bTime;
+
+            // joinedAt 시도
+            if (a['joinedAt'] != null) {
+              aTime = DateTime.tryParse(a['joinedAt'].toString());
+            }
+            if (b['joinedAt'] != null) {
+              bTime = DateTime.tryParse(b['joinedAt'].toString());
+            }
+
+            // joinedAt이 없으면 createdAt 시도
+            if (aTime == null && a['createdAt'] != null) {
+              aTime = DateTime.tryParse(a['createdAt'].toString());
+            }
+            if (bTime == null && b['createdAt'] != null) {
+              bTime = DateTime.tryParse(b['createdAt'].toString());
+            }
+
+            // 둘 다 있으면 비교 (먼저 입장한 순서)
+            if (aTime != null && bTime != null) {
+              return aTime.compareTo(bTime);
+            }
+
+            // 시간 정보가 없으면 _id로 비교
+            final aId = a['_id']?.toString() ?? '';
+            final bId = b['_id']?.toString() ?? '';
+            return aId.compareTo(bId);
+          });
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -443,14 +506,16 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           const Spacer(),
                           if (!isOwner)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
                                 '방장만 수정 가능',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey),
                               ),
                             ),
                         ],
@@ -484,7 +549,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFFFA2E55)),
+                            borderSide: const BorderSide(
+                                color: Color(0xFFFA2E55)),
                           ),
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -521,7 +587,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFFFA2E55)),
+                            borderSide: const BorderSide(
+                                color: Color(0xFFFA2E55)),
                           ),
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -590,13 +657,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFA2E55),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${appState.roomMembers.length}명',
+                              '${sortedMembers.length}명',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -609,8 +677,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
                       const SizedBox(height: 16),
 
-                      // 멤버 목록
-                      ...appState.roomMembers.map((member) {
+                      // 정렬된 멤버 목록
+                      ...sortedMembers.map((member) {
                         return _buildMemberItem(member, isOwner, currentUserId);
                       }).toList(),
                     ],
@@ -666,7 +734,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           ),
                           onPressed: () async {
                             try {
-                              final inviteCode = await appState.generateInviteCode();
+                              final inviteCode = await appState
+                                  .generateInviteCode();
                               _showInviteCodeDialog(inviteCode);
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -735,7 +804,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.warning, color: Colors.red.shade600, size: 20),
+                              Icon(Icons.warning, color: Colors.red.shade600,
+                                  size: 20),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
@@ -777,26 +847,30 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isOwner ? Colors.grey[400] : Colors.red,
+                            backgroundColor: isOwner ? Colors.grey[400] : Colors
+                                .red,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: isOwner ? null : () => _showLeaveRoomDialog(),
+                          onPressed: isOwner ? null : () =>
+                              _showLeaveRoomDialog(),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 isOwner ? Icons.block : Icons.exit_to_app,
-                                color: isOwner ? Colors.grey[600] : Colors.white,
+                                color: isOwner ? Colors.grey[600] : Colors
+                                    .white,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 isOwner ? '방장 위임 후 나가기 가능' : '방 나가기',
                                 style: TextStyle(
-                                  color: isOwner ? Colors.grey[600] : Colors.white,
+                                  color: isOwner ? Colors.grey[600] : Colors
+                                      .white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -821,97 +895,99 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   void _showInviteCodeDialog(String inviteCode) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('초대 코드'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('다음 코드를 새로운 멤버에게 공유하세요:'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: SelectableText(
-                inviteCode,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+      builder: (_) =>
+          AlertDialog(
+            title: const Text('초대 코드'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('다음 코드를 새로운 멤버에게 공유하세요:'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SelectableText(
+                    inviteCode,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '⏰ 코드는 3시간 후 만료됩니다',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFA2E55),
-            ),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: inviteCode));
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('초대 코드가 복사되었습니다'),
-                  backgroundColor: Colors.green,
+                const SizedBox(height: 16),
+                Text(
+                  '⏰ 코드는 3시간 후 만료됩니다',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
-              );
-            },
-            child: const Text('복사', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('닫기'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFA2E55),
+                ),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: inviteCode));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('초대 코드가 복사되었습니다'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                child: const Text('복사', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showLeaveRoomDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          '방 나가기',
-          style: TextStyle(color: Colors.red),
-        ),
-        content: const Text(
-          '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+      builder: (context) =>
+          AlertDialog(
+            title: const Text(
+              '방 나가기',
+              style: TextStyle(color: Colors.red),
             ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _leaveRoom();
-            },
-            child: const Text(
-              '나가기',
-              style: TextStyle(color: Colors.white),
+            content: const Text(
+              '정말로 방을 나가시겠습니까?\n\n나간 후에는 초대 코드로만 다시 들어올 수 있습니다.',
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _leaveRoom();
+                },
+                child: const Text(
+                  '나가기',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -928,9 +1004,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
         ),
       );
 
+      // 방을 나간 후 방 생성/참여 화면으로 이동
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        MaterialPageRoute(builder: (_) => const GoRoomScreen()),
             (route) => false,
       );
     } catch (e) {

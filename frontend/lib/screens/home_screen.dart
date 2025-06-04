@@ -754,12 +754,16 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFFFAFAFA),
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text(
-          widget.roomName,
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Consumer<AppState>(
+          builder: (context, appState, child) {
+            return Text(
+              appState.currentRoom?.roomName ?? widget.roomName,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          },
         ),
         actions: [
           IconButton(
@@ -934,14 +938,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildProfileSection() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
-        // 멤버 정렬: 방장을 맨 앞으로, 나머지는 입장한 순서대로
+        // 멤버 정렬: 본인이 맨 앞, 그 다음은 방 입장 순서대로
         final sortedMembers = List<Map<String, dynamic>>.from(appState.roomMembers);
-        sortedMembers.sort((a, b) {
-          // 방장이면 맨 앞으로
-          if (a['isOwner'] == true && b['isOwner'] != true) return -1;
-          if (b['isOwner'] == true && a['isOwner'] != true) return 1;
+        final currentUserId = appState.currentUser?.id;
 
-          // 둘 다 방장이 아니거나 둘 다 방장이면 입장한 순서대로
+        sortedMembers.sort((a, b) {
+          final aUserId = a['userId']?.toString();
+          final bUserId = b['userId']?.toString();
+
+          // 본인이면 맨 앞으로
+          if (aUserId == currentUserId && bUserId != currentUserId) return -1;
+          if (bUserId == currentUserId && aUserId != currentUserId) return 1;
+
+          // 둘 다 본인이 아니면 입장한 순서대로
           DateTime? aTime;
           DateTime? bTime;
 
@@ -961,7 +970,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bTime = DateTime.tryParse(b['createdAt'].toString());
           }
 
-          // 둘 다 있으면 비교
+          // 둘 다 있으면 비교 (먼저 입장한 순서)
           if (aTime != null && bTime != null) {
             return aTime.compareTo(bTime);
           }
@@ -984,7 +993,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: sortedMembers.length,
                     itemBuilder: (context, index) {
                       final member = sortedMembers[index];
-                      final isCurrentUser = member['userId'].toString() == appState.currentUser?.id;
+                      final isCurrentUser = member['userId'].toString() == currentUserId;
                       final isOwner = member['isOwner'] == true;
                       final profileImageUrl = member['profileImageUrl'];
 

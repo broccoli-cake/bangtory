@@ -81,7 +81,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '프로필 사진',
+          '프로필 색상',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -89,66 +89,159 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // 현재 선택된 프로필 이미지
+        // 현재 선택된 프로필 색상 미리보기
         Center(
-          child: CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.grey[300],
-            child: CircleAvatar(
-              radius: 55,
-              backgroundColor: _getProfileColor(_selectedProfileImage),
-              child: Icon(
-                Icons.face,
-                size: 60,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 50),
-        // 프로필 이미지 선택 그리드
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 1,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemCount: _profileImages.length,
-          itemBuilder: (context, index) {
-            final imageUrl = _profileImages[index];
-            final isSelected = imageUrl == _selectedProfileImage;
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedProfileImage = imageUrl;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFFFA2E55) : Colors.grey[300]!,
-                    width: isSelected ? 3 : 1,
-                  ),
-                ),
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey[300],
                 child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: _getProfileColor(imageUrl),
-                  child: const Icon(
+                  radius: 55,
+                  backgroundColor: _getProfileColor(_selectedProfileImage),
+                  child: Icon(
                     Icons.face,
                     size: 60,
                     color: Colors.white,
                   ),
                 ),
               ),
-            );
-          },
+              // 색상 선택 버튼
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _showColorPickerDialog,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.grey,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.color_lens_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // 안내 텍스트
+        Center(
+          child: Text(
+            '색상 버튼을 눌러 프로필 색상을 변경하세요',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
+    );
+  }
+
+// 색상 선택 다이얼로그 메서드 추가
+  void _showColorPickerDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            '프로필 색상 선택',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Container(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 1,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: _profileImages.length,
+              itemBuilder: (context, index) {
+                final imageUrl = _profileImages[index];
+                final isSelected = imageUrl == _selectedProfileImage;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedProfileImage = imageUrl;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFFFA2E55) : Colors.grey[300]!,
+                        width: isSelected ? 4 : 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 35,
+                      backgroundColor: _getProfileColor(imageUrl),
+                      child: Icon(
+                        Icons.face,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                '닫기',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        );
+      },
     );
   }
 
