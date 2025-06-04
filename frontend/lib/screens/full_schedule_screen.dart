@@ -17,25 +17,25 @@ class FullScheduleScreen extends StatefulWidget {
 class _FullScheduleScreenState extends State<FullScheduleScreen> {
   final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
 
-  // 카테고리별 고정 색상 매핑 (토마토 숙성 단계)
+  // 카테고리별 고정 색상 매핑
   final Map<String, Color> _categoryColorMap = {};
   final List<Color> _availableColors = [
-    const Color(0xFF2E7D32),
-    const Color(0xFF388E3C),
-    const Color(0xFF4CAF50),
-    const Color(0xFF66BB6A),
-    const Color(0xFF8BC34A),
-    const Color(0xFF9CCC65),
-    const Color(0xFFAED581),
-    const Color(0xFFCDDC39),
-    const Color(0xFFD4E157),
-    const Color(0xFFFFEB3B),
-    const Color(0xFFFDD835),
-    const Color(0xFFFFCA28),
-    const Color(0xFFFFC107),
     const Color(0xFFFF9800),
-    const Color(0xFFFF5722),
+    const Color(0xFF4CAF50),
+    const Color(0xFFFDD835),
+    const Color(0xFF8BC34A),
     const Color(0xFFFA2E55),
+    const Color(0xFFCDDC39),
+    const Color(0xFF2E7D32),
+    const Color(0xFFFFCA28),
+    const Color(0xFF66BB6A),
+    const Color(0xFFFF5722),
+    const Color(0xFFD4E157),
+    const Color(0xFF388E3C),
+    const Color(0xFFFFEB3B),
+    const Color(0xFF9CCC65),
+    const Color(0xFFFFC107),
+    const Color(0xFFAED581),
   ];
 
   @override

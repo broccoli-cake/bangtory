@@ -1002,7 +1002,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           children: [
                             Stack(
+                              clipBehavior: Clip.none, // 꼭지가 아바타 영역을 벗어날 수 있도록
                               children: [
+                                // 토마토 꼭지
+                                Positioned(
+                                  top: -8,
+                                  left: 12,
+                                  child: _buildTomatoStem(),
+                                ),
+                                // 프로필 아바타 (토마토 몸체)
                                 CircleAvatar(
                                   radius: 24,
                                   backgroundColor: _getProfileColor(profileImageUrl),
@@ -1015,8 +1023,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // 방장 표시
                                 if (isOwner)
                                   Positioned(
-                                    bottom: 0,
-                                    right: 0,
+                                    bottom: -2,
+                                    right: -2,
                                     child: Container(
                                       width: 18,
                                       height: 18,
@@ -1038,8 +1046,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // 나 표시 (방장이 아닌 경우)
                                 if (isCurrentUser && !isOwner)
                                   Positioned(
-                                    bottom: 0,
-                                    right: 0,
+                                    bottom: -2,
+                                    right: -2,
                                     child: Container(
                                       width: 18,
                                       height: 18,
@@ -1095,10 +1103,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         width: 48,
                         height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.grey[400]!,
+                            width: 2,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
                         child: const Icon(
-                          Icons.share,
-                          color: Colors.black54,
-                          size: 20,
+                          Icons.add,
+                          color: Colors.grey,
+                          size: 24,
                         ),
                       ),
                     ),
@@ -1109,6 +1126,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  // 토마토 꼭지 위젯 생성 메서드 추가
+  Widget _buildTomatoStem() {
+    return CustomPaint(
+      size: const Size(24, 16),
+      painter: TomatoStemPainter(),
     );
   }
 
@@ -1163,4 +1188,76 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     },
   );
+}
+// 토마토 꼭지를 그리는 CustomPainter 클래스
+class TomatoStemPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF4CAF50) // 진한 녹색
+      ..style = PaintingStyle.fill;
+
+    final lightPaint = Paint()
+      ..color = const Color(0xFF8BC34A) // 연한 녹색
+      ..style = PaintingStyle.fill;
+
+    // 중앙 줄기
+    final stemRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.8),
+        width: 2,
+        height: 6,
+      ),
+      const Radius.circular(1),
+    );
+    canvas.drawRRect(stemRect, lightPaint);
+
+    // 왼쪽 잎사귀
+    final leftLeafPath = Path();
+    leftLeafPath.moveTo(size.width * 0.4, size.height * 0.8);
+    leftLeafPath.quadraticBezierTo(
+        size.width * 0.15, size.height * 0.5,
+        size.width * 0.25, size.height * 0.1
+    );
+    leftLeafPath.quadraticBezierTo(
+        size.width * 0.35, size.height * 0.2,
+        size.width * 0.45, size.height * 0.6
+    );
+    leftLeafPath.close();
+    canvas.drawPath(leftLeafPath, paint);
+
+    // 오른쪽 잎사귀
+    final rightLeafPath = Path();
+    rightLeafPath.moveTo(size.width * 0.6, size.height * 0.8);
+    rightLeafPath.quadraticBezierTo(
+        size.width * 0.85, size.height * 0.5,
+        size.width * 0.75, size.height * 0.1
+    );
+    rightLeafPath.quadraticBezierTo(
+        size.width * 0.65, size.height * 0.2,
+        size.width * 0.55, size.height * 0.6
+    );
+    rightLeafPath.close();
+    canvas.drawPath(rightLeafPath, paint);
+
+    // 중앙 작은 잎사귀
+    final centerLeafPath = Path();
+    centerLeafPath.moveTo(size.width * 0.5, size.height * 0.7);
+    centerLeafPath.quadraticBezierTo(
+        size.width * 0.48, size.height * 0.4,
+        size.width * 0.46, size.height * 0.05
+    );
+    centerLeafPath.quadraticBezierTo(
+        size.width * 0.54, size.height * 0.05,
+        size.width * 0.52, size.height * 0.4
+    );
+    centerLeafPath.lineTo(size.width * 0.5, size.height * 0.7);
+    centerLeafPath.close();
+    canvas.drawPath(centerLeafPath, lightPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
