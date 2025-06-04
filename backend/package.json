@@ -1,47 +1,33 @@
 {
-  "name": "backend",
+  "name": "bangtory-backend",
   "version": "1.0.0",
-  "description": "bangtory backend API server",
+  "description": "방토리 백엔드 서버",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon app.js",
     "start": "node app.js",
-    "test": "jest --detectOpenHandles",
-    "test:watch": "jest --watch"
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/broccoli-cake/bangtory.git"
-  },
-  "keywords": [
-    "backend",
-    "api",
-    "bangtory"
-  ],
-  "author": "hyunkyeong_choi",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/broccoli-cake/bangtory/issues"
-  },
-  "homepage": "https://github.com/broccoli-cake/bangtory#readme",
   "dependencies": {
-    "axios": "^1.9.0",
+    "express": "^4.18.2",
+    "mongoose": "^7.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "ejs": "^3.1.10",
-    "express": "^5.1.0",
-    "express-session": "^1.18.1",
-    "express-validator": "^7.2.1",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.14.1",
-    "node-cron": "^4.0.7",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-kakao": "^1.0.1",
-    "passport-naver": "^1.0.6",
-    "passport-naver-v2": "^2.0.8"
+    "dotenv": "^16.0.3",
+    "express-validator": "^6.15.0",
+    "socket.io": "^4.7.2",
+    "http": "^0.0.1-security",
+    "node-cron": "^3.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "express",
+    "socket.io",
+    "mongodb",
+    "roommate",
+    "chat"
+  ],
+  "author": "방범대",
+  "license": "ISC"
 }

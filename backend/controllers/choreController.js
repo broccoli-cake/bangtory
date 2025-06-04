@@ -2,7 +2,7 @@ const choreService = require('../services/choreService');
 const { body, validationResult } = require('express-validator');
 const { ChoreError } = require('../utils/errors');
 
-// 입력값 검증 미들웨어
+// 입력값 검증 미들웨어 - 아이콘 글자 수 제한 제거
 const validateCategoryInput = [
   body('name')
     .trim()
@@ -27,15 +27,19 @@ const createResponse = (resultCode, resultMessage, data = null) => {
 
 const choreController = {
   /**
-   * 카테고리 목록 조회
+   * 방별 카테고리 목록 조회
    */
   async getCategories(req, res) {
     try {
-      const categories = await choreService.getCategories();
+      const categories = await choreService.getCategories(req.user._id);
       res.json(createResponse('200', '카테고리 목록 조회 성공', categories));
     } catch (error) {
       console.error('카테고리 목록 조회 중 에러:', error);
-      res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
+      if (error instanceof ChoreError) {
+        res.status(error.statusCode).json(createResponse(error.statusCode.toString(), error.message));
+      } else {
+        res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
+      }
     }
   },
 
@@ -53,7 +57,11 @@ const choreController = {
       res.status(201).json(createResponse('201', '카테고리 생성 성공', category));
     } catch (error) {
       console.error('카테고리 생성 중 에러:', error);
-      res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
+      if (error instanceof ChoreError) {
+        res.status(error.statusCode).json(createResponse(error.statusCode.toString(), error.message));
+      } else {
+        res.status(500).json(createResponse('500', '서버 에러가 발생했습니다.'));
+      }
     }
   },
 
@@ -78,4 +86,4 @@ const choreController = {
 module.exports = {
   ...choreController,
   validateCategoryInput
-}; 
+};

@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:frontend/settings/notice/notice_screen.dart';
 import 'package:frontend/screens/onboarding_screen.dart';
+<<<<<<< HEAD
 import 'package:frontend/screens/profile_setup_screen.dart'; // 추가
 import 'package:frontend/settings/room/room_management_screen.dart';  //방 관리 연결
 
+=======
+import '../screens/profile_management_screen.dart';
+import '../screens/room_management_screen.dart';
+import '../utils/app_state.dart';
+>>>>>>> ffbaa156a92efea73fa72adf1c42c26c2de1f2e7
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFA2E55),
             ),
+<<<<<<< HEAD
             onPressed: () {
               Navigator.pop(context);
               // TODO: 로그아웃 처리 로직 추가
@@ -38,8 +46,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 MaterialPageRoute(builder: (_) => const OnboardingScreen()),
                     (route) => false,
               );
+=======
+            onPressed: () async {
+              Navigator.pop(context); // 다이얼로그 닫기
+
+              // 로그아웃 처리
+              final appState = Provider.of<AppState>(context, listen: false);
+              try {
+                await appState.logout();
+
+                // 온보딩 화면으로 즉시 이동
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                        (route) => false, // 모든 이전 화면 제거
+                  );
+                }
+              } catch (e) {
+                // mounted 체크 추가
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('로그아웃 중 오류가 발생했습니다: $e'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
+>>>>>>> ffbaa156a92efea73fa72adf1c42c26c2de1f2e7
             },
-            child: const Text('확인'),
+            child: const Text('확인', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -107,6 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         centerTitle: true,
       ),
+<<<<<<< HEAD
       body: Column(
         children: [
           const SizedBox(height: 10),
@@ -156,6 +194,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const SizedBox.shrink(),
           ),
         ],
+=======
+      body: Consumer<AppState>(
+        builder: (context, appState, child) {
+          final hasRoom = appState.currentRoom != null;
+
+          return Column(
+            children: [
+              const SizedBox(height: 10),
+              _buildSettingsItem(
+                label: '프로필 관리',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileManagementScreen()),
+                  );
+                },
+              ),
+              _buildSettingsItem(
+                label: '푸시알림',
+                trailing: Switch(
+                  value: isPushEnabled,
+                  activeColor: const Color(0xFFFA2E55),
+                  inactiveThumbColor: Colors.grey,
+                  inactiveTrackColor: Colors.grey.shade300,
+                  onChanged: (value) {
+                    setState(() {
+                      isPushEnabled = value;
+                    });
+                  },
+                ),
+              ),
+              _buildSettingsItem(
+                label: '방 관리',
+                onTap: hasRoom ? () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RoomManagementScreen()),
+                  );
+                } : null,
+                textColor: hasRoom ? Colors.black : Colors.grey,
+                trailing: hasRoom
+                    ? const Icon(Icons.chevron_right, color: Colors.grey)
+                    : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '방에 참여해주세요',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.lock, color: Colors.grey, size: 16),
+                  ],
+                ),
+              ),
+              _buildSettingsItem(
+                label: '공지사항',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NoticeScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildSettingsItem(
+                label: '로그아웃',
+                textColor: const Color(0xFFFA2E55),
+                onTap: _showLogoutDialog,
+                trailing: const SizedBox.shrink(),
+              ),
+            ],
+          );
+        },
+>>>>>>> ffbaa156a92efea73fa72adf1c42c26c2de1f2e7
       ),
     );
   }

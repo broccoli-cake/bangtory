@@ -8,11 +8,6 @@ class ChoreError extends Error {
   }
 }
 
-module.exports = {
-  ChoreError
-}; 
-
-
 class ReservationError extends Error {
   constructor(message, statusCode = 400) {
     super(message);
@@ -31,6 +26,7 @@ class ValidationError extends Error {
 }
 
 module.exports = {
+  ChoreError,
   ReservationError,
   ValidationError
 };

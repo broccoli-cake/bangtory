@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // 타이머에 필요
-// import 'login_screen.dart'; // 로그인 화면 import (임시 비활성화)
-import 'profile_setup_screen.dart'; // 테스트용으로 대체 이동 화면
+import 'package:provider/provider.dart';
+import '../utils/app_state.dart';
+import 'profile_setup_screen.dart';
+import 'go_room_screen.dart';
+import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,17 +13,59 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  bool _isChecking = true;
+
   @override
   void initState() {
     super.initState();
-    // 6초 뒤 다음 화면으로 이동
-    Timer(const Duration(seconds: 6), () {
+    _checkUserStateAndNavigate();
+  }
+
+  Future<void> _checkUserStateAndNavigate() async {
+    try {
+      final appState = Provider.of<AppState>(context, listen: false);
+
+      // 기존 사용자 데이터 로드 시도
+      await appState.loadUser();
+
+      // 6초 대기 (온보딩 화면 표시)
+      await Future.delayed(const Duration(seconds: 6));
+
+      if (!mounted) return;
+
+      if (appState.currentUser == null) {
+        // 사용자 데이터가 없으면 프로필 설정 화면으로
+        _navigateToScreen(const ProfileSetupScreen());
+      } else if (appState.currentRoom == null) {
+        // 사용자는 있지만 방이 없으면 방 생성/참여 화면으로
+        _navigateToScreen(const GoRoomScreen());
+      } else {
+        // 사용자와 방 모두 있으면 홈 화면으로
+        // 알림 개수도 로드
+        await appState.loadUnreadNotificationCount();
+
+        _navigateToScreen(HomeScreen(
+          roomName: appState.currentRoom!.roomName,
+          userName: appState.currentUser!.name,
+        ));
+      }
+    } catch (e) {
+      print('사용자 상태 확인 중 오류: $e');
+      // 오류 발생 시 프로필 설정 화면으로
+      if (mounted) {
+        _navigateToScreen(const ProfileSetupScreen());
+      }
+    }
+  }
+
+
+  void _navigateToScreen(Widget screen) {
+    if (mounted) {
       Navigator.pushReplacement(
         context,
-        // MaterialPageRoute(builder: (context) => const LoginScreen()), // 기존 로그인 화면
-        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()), // 임시로 프로필 설정 화면으로 이동
+        MaterialPageRoute(builder: (context) => screen),
       );
-    });
+    }
   }
 
   @override
@@ -112,9 +156,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ],
             ),
           ),
+
+          // 로딩 인디케이터 (하단)
+          if (_isChecking)
+            Positioned(
+              bottom: 100,
+              left: 0,
+              right: 0,
+              child: Column(
+                children: const [
+                  CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '사용자 정보를 확인하고 있습니다...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
-

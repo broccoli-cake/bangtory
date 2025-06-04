@@ -1,14 +1,13 @@
-// backend/controllers/reservationController.js
 const reservationService = require('../services/reservationService');
 const { successResponse } = require('../utils/responses');
 
 const reservationController = {
   /**
-   * 예약 카테고리 목록 조회
+   * 방별 예약 카테고리 목록 조회
    */
   async getCategories(req, res, next) {
     try {
-      const categories = await reservationService.getCategories();
+      const categories = await reservationService.getCategories(req.user.id);
       res.json(successResponse(categories, '카테고리 목록을 조회했습니다.'));
     } catch (error) {
       next(error);
@@ -34,7 +33,6 @@ const reservationController = {
       if (isVisitor === true) {
         categoryData.isVisitor = true;
       }
-      // isVisitor가 false이거나 undefined인 경우 필드 자체를 포함하지 않음
 
       const category = await reservationService.createCategory(categoryData, userId);
 
@@ -43,7 +41,6 @@ const reservationController = {
       next(error);
     }
   },
-
 
   /**
    * 예약 카테고리 삭제

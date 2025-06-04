@@ -1,24 +1,26 @@
-// backend/routes/reservation.js
+// backend/routes/reservation.js - 완전히 새로 작성
 const express = require('express');
 const router = express.Router();
 const reservationController = require('../controllers/reservationController');
 const reservationScheduleController = require('../controllers/reservationScheduleController');
-const { isAuthenticated } = require('../middlewares/auth');
+const { simpleAuth } = require('../middlewares/simpleAuth');
 const { validateReservationCategory } = require('../middlewares/validation');
 
 // 예약 카테고리 관련 라우트
-router.get('/categories', isAuthenticated, reservationController.getCategories); // 예약 카테고리 목록 조회
-router.post('/categories', isAuthenticated, validateReservationCategory, reservationController.createCategory); // 예약 카테고리 생성
-router.delete('/categories/:categoryId', isAuthenticated, reservationController.deleteCategory); // 예약 카테고리 삭제
+router.get('/categories', simpleAuth, reservationController.getCategories);
+router.post('/categories', simpleAuth, validateReservationCategory, reservationController.createCategory);
+router.delete('/categories/:categoryId', simpleAuth, reservationController.deleteCategory);
 
-// 예약 일정 관련 라우트
-router.get('/rooms/:roomId/schedules', isAuthenticated, reservationScheduleController.getCurrentWeekSchedules); // 현재 주 예약 일정 조회
-router.get('/rooms/:roomId/schedules/weekly', isAuthenticated, reservationScheduleController.getWeeklySchedules); // 주간 예약 일정 조회
-router.get('/rooms/:roomId/schedules/visitors', isAuthenticated, reservationScheduleController.getVisitorReservations); // 방문객 예약 조회
-router.get('/rooms/:roomId/schedules/pending', isAuthenticated, reservationScheduleController.getPendingReservations); // 승인 대기 중인 예약 목록 조회
+// 예약 일정 생성, 승인, 삭제
+router.post('/schedules', simpleAuth, reservationScheduleController.createSchedule);
+router.patch('/schedules/:reservationId/approve', simpleAuth, reservationScheduleController.approveReservation);
+router.delete('/schedules/:scheduleId', simpleAuth, reservationScheduleController.deleteSchedule);
 
-router.post('/schedules', isAuthenticated, reservationScheduleController.createSchedule); // 예약 일정 생성
-router.patch('/schedules/:reservationId/approve', isAuthenticated, reservationScheduleController.approveReservation); // 예약 승인
-router.delete('/schedules/:scheduleId', isAuthenticated, reservationScheduleController.deleteSchedule); // 예약 삭제
+// 예약 조회 라우트들 - 간단하고 명확한 구조
+router.get('/all-schedules/:roomId', simpleAuth, reservationScheduleController.getCurrentWeekSchedules);
+router.get('/weekly-schedules/:roomId', simpleAuth, reservationScheduleController.getWeeklySchedules);
+router.get('/visitor-schedules/:roomId', simpleAuth, reservationScheduleController.getVisitorReservations);
+router.get('/pending-schedules/:roomId', simpleAuth, reservationScheduleController.getPendingReservations);
+router.get('/category-schedules/:roomId/:categoryId', simpleAuth, reservationScheduleController.getCategoryWeeklySchedules);
 
 module.exports = router;
