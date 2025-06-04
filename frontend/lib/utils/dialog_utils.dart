@@ -23,7 +23,7 @@ class DialogUtils {
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
+                foregroundColor: Colors.redAccent,
               ),
               child: Text(deleteText),
             ),

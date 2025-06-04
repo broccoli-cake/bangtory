@@ -116,7 +116,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildEventCard(Map<String, dynamic> event) {
     final isChore = event['type'] == 'chore';
-    final color = isChore ? Colors.blue : Colors.purple;
+    final color = isChore ? Colors.redAccent : Colors.orangeAccent;
     final categoryName = event['title'];
     final categoryIcon = event['categoryIcon']; // 아이콘 정보 가져오기
     final icon = _getCategoryIcon(categoryName, categoryIcon, isChore);
@@ -289,10 +289,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       shape: BoxShape.circle,
                     ),
                     selectedDecoration: BoxDecoration(
-                      color: Colors.pinkAccent,
+                      color: Color(0xFFFA2E55),
                       shape: BoxShape.circle,
                     ),
-                    weekendTextStyle: TextStyle(color: Colors.red),
+                    weekendTextStyle: TextStyle(color: Colors.redAccent),
                     outsideDaysVisible: false,
                   ),
                   headerStyle: const HeaderStyle(

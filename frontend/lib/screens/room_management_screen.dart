@@ -40,19 +40,19 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   Color _getProfileColor(String? profileImageUrl) {
     switch (profileImageUrl) {
       case '/images/profile1.png':
-        return Colors.red[400]!;
+        return const Color(0xFF4CAF50);
       case '/images/profile2.png':
-        return Colors.blue[400]!;
+        return const Color(0xFF8BC34A);
       case '/images/profile3.png':
-        return Colors.green[400]!;
+        return const Color(0xFFFFEB3B);
       case '/images/profile4.png':
-        return Colors.purple[400]!;
+        return const Color(0xFFFF9800);
       case '/images/profile5.png':
-        return Colors.orange[400]!;
+        return const Color(0xFFFF5722);
       case '/images/profile6.png':
-        return Colors.teal[400]!;
+        return const Color(0xFFFA2E55);
       default:
-        return Colors.grey[400]!;
+        return const Color(0xFFFA2E55);
     }
   }
 
@@ -81,14 +81,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('방 정보가 수정되었습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('방 정보 수정 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -136,7 +136,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('방장이 위임되었습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
 
@@ -146,7 +146,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('방장 위임 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -168,7 +168,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.redAccent,
                 ),
                 onPressed: () async {
                   Navigator.pop(context);
@@ -194,14 +194,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('멤버가 내보내졌습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('멤버 내보내기 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -347,7 +347,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                 child: Row(
                   children: [
                     Icon(
-                        Icons.face_retouching_off, color: Colors.red, size: 16),
+                        Icons.face_retouching_off, color: Colors.redAccent, size: 16),
                     SizedBox(width: 8),
                     Text('내보내기'),
                   ],
@@ -720,7 +720,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: Colors.lightGreen,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -734,7 +734,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('초대 코드 생성 실패: $e'),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
                             }
@@ -780,7 +780,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                          color: Colors.redAccent,
                         ),
                       ),
 
@@ -789,7 +789,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isOwner ? Colors.grey[400] : Colors.red,
+                            backgroundColor: isOwner ? Colors.grey[400] : Colors.redAccent,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -848,7 +848,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red,
+                            color: Colors.redAccent,
                           ),
                         ),
 
@@ -951,7 +951,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('초대 코드가 복사되었습니다'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.lightGreen,
                     ),
                   );
                 },
@@ -969,7 +969,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           AlertDialog(
             title: const Text(
               '방 나가기',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.redAccent),
             ),
             content: const Text(
               '정말로 방을 나가시겠습니까?\n\n나간 후에는 기존 데이터가 삭제됩니다.',
@@ -981,7 +981,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.redAccent,
                 ),
                 onPressed: () async {
                   Navigator.pop(context);
@@ -1008,7 +1008,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             const Text(
               '방 삭제 확인',
               style: TextStyle(
-                color: Colors.red,
+                color: Colors.redAccent,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1129,7 +1129,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('방이 삭제되었습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
 
@@ -1148,7 +1148,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('방 삭제 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -1163,7 +1163,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('방을 나왔습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
 
@@ -1177,7 +1177,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('방 나가기 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }

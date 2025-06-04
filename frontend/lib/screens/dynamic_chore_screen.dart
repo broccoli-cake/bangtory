@@ -186,7 +186,7 @@ class _DynamicChoreScreenState extends State<DynamicChoreScreen> {
                                 tooltip: isCompleted ? '완료 해제' : '완료 처리',
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
+                                icon: const Icon(Icons.delete, color: Colors.redAccent),
                                 onPressed: () => _deleteDuty(schedule),
                               ),
                             ],

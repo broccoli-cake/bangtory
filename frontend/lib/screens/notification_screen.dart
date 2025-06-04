@@ -85,7 +85,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('알림을 불러오는데 실패했습니다: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -154,7 +154,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('알림 읽음 처리 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -188,14 +188,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('모든 알림을 읽음 처리했습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('모든 알림 읽음 처리 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }

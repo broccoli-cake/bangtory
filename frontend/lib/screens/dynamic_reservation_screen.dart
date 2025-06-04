@@ -166,14 +166,14 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.category['name']} 예약이 등록되었습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('예약 등록 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -193,14 +193,14 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('예약이 삭제되었습니다.'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.lightGreen,
           ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('삭제 실패: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -222,14 +222,14 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('승인했습니다. ${remainingApprovals}명의 승인이 더 필요합니다.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.orangeAccent,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('모든 멤버가 승인했습니다! 예약이 최종 승인되었습니다.'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.lightGreen,
           ),
         );
       }
@@ -237,7 +237,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('승인 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -272,16 +272,16 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
     if (status == 'pending') {
       switch (approvalStatus) {
         case 'pending':
-          return Colors.red;
+          return Colors.redAccent;
         case 'partial_approved':
-          return Colors.orange;
+          return Colors.orangeAccent;
         case 'fully_approved':
-          return Colors.blue;
+          return Colors.lightBlueAccent;
         default:
           return Colors.grey;
       }
     } else if (status == 'approved') {
-      return Colors.green;
+      return Colors.lightGreen;
     }
     return Colors.grey;
   }
@@ -421,7 +421,7 @@ class _DynamicReservationScreenState extends State<DynamicReservationScreen> {
                       const Icon(Icons.check_circle, color: Colors.green, size: 20),
                     // 삭제 버튼
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () => _deleteReservation(reservation),
                     ),
                   ],

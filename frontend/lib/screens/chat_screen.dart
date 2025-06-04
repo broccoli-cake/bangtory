@@ -340,9 +340,9 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
             CircleAvatar(
               radius: 16,
               backgroundColor: _isConnected
-                  ? Colors.green
+                  ? Colors.lightGreen
                   : _isConnecting
-                  ? Colors.orange
+                  ? Colors.orangeAccent
                   : Colors.grey,
               child: _isConnecting
                   ? const SizedBox(
@@ -375,10 +375,10 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                       : '연결 실패',
                   style: TextStyle(
                     color: _isConnected
-                        ? Colors.green
+                        ? Colors.lightGreen
                         : _isConnecting
-                        ? Colors.orange
-                        : Colors.red,
+                        ? Colors.orangeAccent
+                        : Colors.redAccent,
                     fontSize: 12,
                   ),
                 ),
@@ -421,14 +421,14 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
                       ),
                     )
                   else
                     const Icon(
                       Icons.error_outline,
                       size: 16,
-                      color: Colors.red,
+                      color: Colors.redAccent,
                     ),
                   const SizedBox(width: 8),
                   Text(
@@ -437,7 +437,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                         : '채팅 서버 연결이 끊어졌습니다',
                     style: TextStyle(
                       fontSize: 12,
-                      color: _isConnecting ? Colors.orange : Colors.red,
+                      color: _isConnecting ? Colors.orangeAccent : Colors.redAccent,
                     ),
                   ),
                   if (!_isConnecting) ...[
@@ -448,7 +448,7 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                         '다시 연결',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.red,
+                          color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -470,13 +470,13 @@ class _ChatRoomScreenWithSocketState extends State<ChatRoomScreenWithSocket> {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.lightBlueAccent),
                     ),
                   ),
                   SizedBox(width: 8),
                   Text(
                     '메시지 기록을 불러오는 중...',
-                    style: TextStyle(fontSize: 12, color: Colors.blue),
+                    style: TextStyle(fontSize: 12, color: Colors.lightBlueAccent),
                   ),
                 ],
               ),

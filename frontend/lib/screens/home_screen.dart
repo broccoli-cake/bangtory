@@ -614,13 +614,13 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData icon;
 
     if (type == 'chore') {
-      color = Colors.blue;
+      color = Colors.redAccent;
       icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.cleaning_services;
     } else if (type == 'visitor') {
-      color = Colors.purple;
+      color = Colors.orangeAccent;
       icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.emoji_people;
     } else {
-      color = Colors.green;
+      color = Colors.lightGreen;
       icon = categoryIcon != null ? IconUtils.getIconData(categoryIcon) : Icons.event_available;
     }
 
@@ -628,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (type == 'chore' && isCompleted) {
       color = Colors.grey;
     } else if (type == 'visitor' && status == 'pending') {
-      color = Colors.orange;
+      color = Colors.orangeAccent;
     }
 
     return Container(
@@ -666,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: Colors.lightGreen,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
@@ -679,7 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.orange,
+                          color: Colors.orangeAccent,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
@@ -725,23 +725,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 프로필 이미지별 색상 매핑
+  // 프로필 이미지별 색상 매핑 (토마토 숙성 단계)
   Color _getProfileColor(String? profileImageUrl) {
     switch (profileImageUrl) {
       case '/images/profile1.png':
-        return Colors.red[400]!;
+        return const Color(0xFF4CAF50);
       case '/images/profile2.png':
-        return Colors.blue[400]!;
+        return const Color(0xFF8BC34A);
       case '/images/profile3.png':
-        return Colors.green[400]!;
+        return const Color(0xFFFFEB3B);
       case '/images/profile4.png':
-        return Colors.purple[400]!;
+        return const Color(0xFFFF9800);
       case '/images/profile5.png':
-        return Colors.orange[400]!;
+        return const Color(0xFFFF5722);
       case '/images/profile6.png':
-        return Colors.teal[400]!;
+        return const Color(0xFFFA2E55);
       default:
-        return Colors.grey[400]!;
+        return const Color(0xFFFA2E55);
     }
   }
 

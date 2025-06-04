@@ -61,7 +61,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('프로필이 수정되었습니다.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightGreen,
         ),
       );
 
@@ -70,7 +70,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('프로필 수정 실패: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -116,12 +116,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.grey,
+                      color: const Color(0xFFFA2E55),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 3,
-                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.2),
@@ -158,7 +154,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     );
   }
 
-// 색상 선택 다이얼로그 메서드 추가
+// 색상 선택 다이얼로그 메서드
   void _showColorPickerDialog() {
     showDialog(
       context: context,
@@ -173,19 +169,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           ),
           content: Container(
             width: double.maxFinite,
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: _profileImages.length,
-              itemBuilder: (context, index) {
-                final imageUrl = _profileImages[index];
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
+              children: _profileImages.map((imageUrl) {
                 final isSelected = imageUrl == _selectedProfileImage;
-
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -194,8 +183,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     Navigator.pop(context);
                   },
                   child: Container(
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      color: _getProfileColor(imageUrl),
                       border: Border.all(
                         color: isSelected ? const Color(0xFFFA2E55) : Colors.grey[300]!,
                         width: isSelected ? 4 : 2,
@@ -207,20 +199,25 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           blurRadius: 3,
                           offset: const Offset(0, 1),
                         ),
+                        if (isSelected)
+                          BoxShadow(
+                            color: const Color(0xFFFA2E55).withOpacity(0.3),
+                            spreadRadius: 2,
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 35,
-                      backgroundColor: _getProfileColor(imageUrl),
-                      child: Icon(
-                        Icons.face,
-                        size: 30,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: isSelected
+                        ? const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 24,
+                    )
+                        : null,
                   ),
                 );
-              },
+              }).toList(),
             ),
           ),
           actions: [
@@ -249,19 +246,19 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Color _getProfileColor(String imageUrl) {
     switch (imageUrl) {
       case '/images/profile1.png':
-        return Colors.red[400]!;
+        return const Color(0xFF4CAF50);
       case '/images/profile2.png':
-        return Colors.blue[400]!;
+        return const Color(0xFF8BC34A);
       case '/images/profile3.png':
-        return Colors.green[400]!;
+        return const Color(0xFFFFEB3B);
       case '/images/profile4.png':
-        return Colors.purple[400]!;
+        return const Color(0xFFFF9800);
       case '/images/profile5.png':
-        return Colors.orange[400]!;
+        return const Color(0xFFFF5722);
       case '/images/profile6.png':
-        return Colors.teal[400]!;
+        return const Color(0xFFFA2E55);
       default:
-        return Colors.grey[400]!;
+        return const Color(0xFFFA2E55);
     }
   }
 
