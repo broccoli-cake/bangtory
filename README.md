@@ -108,7 +108,7 @@ bangtory/
 
 ## 🖼️ 전시 포스터
 
-[방토리 포스터](docs/documents/방토리_전시포스터.pdf) |
+[방토리 포스터](docs/documents/방토리_전시포스터.pdf)
 
 
 
