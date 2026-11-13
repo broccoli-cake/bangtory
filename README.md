@@ -60,16 +60,9 @@
 | Database | MongoDB | 공동생활 관련 데이터 저장 및 관리 |
 | Version Control | Git / GitHub | 소스 코드 및 협업 이력 관리 |
 
-## 🏗 시스템 구성
+## 🗃 데이터베이스 ERD
 
-```mermaid
-flowchart TD
-    U[사용자] --> F[Flutter 모바일 앱]
-    F <-->|API 요청 및 응답| B[Node.js 백엔드]
-    B <-->|데이터 조회 및 저장| D[(MongoDB)]
-    F <-->|실시간 이벤트| S[Socket.IO 서버]
-    S --- B
-```
+![방토리 데이터베이스 ERD](docs/images/ERD.png)
 
 ## 📁 프로젝트 구조
 
