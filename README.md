@@ -108,6 +108,9 @@ bangtory/
 
 [![방토리 시연 영상](https://img.youtube.com/vi/0KnfuD7JgWM/hqdefault.jpg)](https://youtu.be/0KnfuD7JgWM)
 
+
+| 🖼️ 전시 포스터 | [방토리 전시 포스터](docs/방토리_전시포스터.pdf) |
+
 ---
 
 <div align="center">
