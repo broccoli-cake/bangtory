@@ -83,7 +83,7 @@ bangtory/
 | 📄 [화면 구현 문서](docs/documents/%EB%B0%A9%ED%86%A0%EB%A6%AC_%ED%99%94%EB%A9%B4%EA%B5%AC%ED%98%84.pdf) | 앱 주요 화면과 관련 유스케이스 및 화면별 설명 |
 | 📄 [프로젝트 발표자료](docs/documents/%EB%B0%A9%ED%86%A0%EB%A6%AC_%EB%B0%9C%ED%91%9C%EC%9E%90%EB%A3%8C.pdf) | 기획 배경, 주요 기능, UI, 기술 및 구현 과정 |
 | 📄 [프로젝트 결과 보고서](docs/documents/%EB%B0%A9%ED%86%A0%EB%A6%AC_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EA%B2%B0%EA%B3%BC%20%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf) | 개발 배경, 요구사항, 설계, 구현 및 기대효과 |
-| 📄 [전시 포스터](docs/documents/%EB%B0%A9%ED%86%A0%EB%A6%AC_%EC%A0%84%EC%8B%9C%ED%8F%AC%EC%8A%A4%ED%84%B0.pdf) | 2026 캡스톤 페스티벌 전시용 포스터 |
+| 📄 [전시 포스터](docs/documents/방토리_포스터_온라인게시용.pdf) | 2026 캡스톤 페스티벌 전시용 포스터 |
 
 
 ## 🎯 기대효과
